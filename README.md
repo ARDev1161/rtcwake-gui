@@ -23,7 +23,7 @@ The fastest way to install and start the daemon is via the helper script:
 ```bash
 ./scripts/install.sh
 ```
-It configures the project in Release mode, builds the GUI + daemon + tests, runs `ctest`, installs binaries into `~/.local/bin`, copies the systemd user unit, and offers to enable the daemon right away.
+It configures the project in Release mode, builds the GUI + daemon + tests, runs `ctest`, installs binaries into `~/.local/bin`, installs a desktop entry + icon so the app appears in your launcher, copies the systemd user unit, and offers to enable the daemon right away. To remove everything later, run `./scripts/uninstall.sh`.
 
 ## Manual build
 ```bash

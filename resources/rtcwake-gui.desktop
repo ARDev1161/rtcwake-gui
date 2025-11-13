@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=rtcwake Planner
+Comment=Plan RTC wake-ups and optional shutdown actions
+Exec=rtcwake-gui
+Icon=rtcwake-gui
+Terminal=false
+Type=Application
+Categories=Utility;System;
+StartupNotify=false

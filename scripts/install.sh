@@ -6,6 +6,10 @@ BUILD_DIR=${PROJECT_ROOT}/build
 PREFIX=${HOME}/.local/bin
 SERVICE_SRC=${PROJECT_ROOT}/systemd/rtcwake-daemon.service
 SERVICE_DST=${HOME}/.config/systemd/user/rtcwake-daemon.service
+DESKTOP_SRC=${PROJECT_ROOT}/resources/rtcwake-gui.desktop
+DESKTOP_DST=${HOME}/.local/share/applications/rtcwake-gui.desktop
+ICON_SRC=${PROJECT_ROOT}/resources/icons/clock.svg
+ICON_DST=${HOME}/.local/share/icons/hicolor/scalable/apps/rtcwake-gui.svg
 
 cmake -S "${PROJECT_ROOT}" -B "${BUILD_DIR}" -DCMAKE_BUILD_TYPE=Release
 cmake --build "${BUILD_DIR}"
@@ -21,6 +25,16 @@ fi
 mkdir -p "$(dirname "${SERVICE_DST}")"
 if [ -f "${SERVICE_SRC}" ]; then
   sed "s|ExecStart=.*|ExecStart=${PREFIX}/rtcwake-daemon|" "${SERVICE_SRC}" > "${SERVICE_DST}"
+fi
+
+if [ -f "${DESKTOP_SRC}" ]; then
+  mkdir -p "$(dirname "${DESKTOP_DST}")"
+  install -m 644 "${DESKTOP_SRC}" "${DESKTOP_DST}"
+fi
+
+if [ -f "${ICON_SRC}" ]; then
+  mkdir -p "$(dirname "${ICON_DST}")"
+  install -m 644 "${ICON_SRC}" "${ICON_DST}"
 fi
 
 echo "Binaries installed to ${PREFIX}."
