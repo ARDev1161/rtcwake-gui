@@ -32,9 +32,9 @@ Options:
 Run the application from `build/src/rtcwake-gui` (must have permission to call `rtcwake`).
 
 ## Usage
-1. **Single Wake tab** — pick date + time, verify on the analog clock, choose the desired power action, and hit *Schedule wake*.
-2. **Warning banner** — enable it if you want a modal reminder before the machine powers down; configure the message, countdown (seconds), and snooze delay (minutes).
-3. **Weekly Schedule tab** — enable any subset of weekdays and assign times. Press *Schedule next weekly wake* to arm the closest upcoming entry.
+1. **Single Wake tab** — pick date + time, verify on the analog clock, and hit *Schedule wake*.
+2. **Weekly Schedule tab** — enable any subset of weekdays and assign times. Press *Schedule next weekly wake* to arm the closest upcoming entry.
+3. **Settings tab** — select the power action that should run after programming the RTC and configure the optional warning banner (message, countdown seconds, snooze minutes).
 4. The status label and log show the exact `rtcwake` command that was executed.
 
 > Tip: the app writes the next-alarm summary to `~/.local/share/rtcwake-gui/next-wake.json`. The included Plasma widget reads that file and offers quick refresh + a button to launch the planner.

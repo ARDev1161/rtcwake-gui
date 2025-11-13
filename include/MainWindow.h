@@ -66,6 +66,7 @@ private:
     void buildUi();
     QWidget *buildSingleTab();
     QWidget *buildWeeklyTab();
+    QWidget *buildSettingsTab();
     void populateActionGroup(QVBoxLayout *layout);
     void connectSignals();
 

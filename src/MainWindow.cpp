@@ -59,6 +59,7 @@ void MainWindow::buildUi() {
     auto *tabs = new QTabWidget(this);
     tabs->addTab(buildSingleTab(), tr("Single wake"));
     tabs->addTab(buildWeeklyTab(), tr("Weekly schedule"));
+    tabs->addTab(buildSettingsTab(), tr("Settings"));
 
     m_log = new QPlainTextEdit(this);
     m_log->setReadOnly(true);
@@ -98,35 +99,6 @@ QWidget *MainWindow::buildSingleTab() {
     timeLayout->addWidget(m_clockWidget, 0, 2, 2, 1);
 
     layout->addWidget(timeBox);
-
-    auto *actionsBox = new QGroupBox(tr("Action after scheduling"), tab);
-    auto *actionsLayout = new QVBoxLayout(actionsBox);
-    populateActionGroup(actionsLayout);
-    layout->addWidget(actionsBox);
-
-    auto *warningBox = new QGroupBox(tr("Warning banner"), tab);
-    auto *warningLayout = new QGridLayout(warningBox);
-    m_warningEnabled = new QCheckBox(tr("Show warning before sleeping"), warningBox);
-    m_warningMessage = new QLineEdit(tr("System will suspend soon. Save your work."), warningBox);
-    m_warningCountdown = new QSpinBox(warningBox);
-    m_warningCountdown->setRange(5, 600);
-    m_warningCountdown->setValue(30);
-    m_warningCountdown->setSuffix(tr(" s"));
-
-    m_warningSnooze = new QSpinBox(warningBox);
-    m_warningSnooze->setRange(1, 120);
-    m_warningSnooze->setValue(5);
-    m_warningSnooze->setSuffix(tr(" min"));
-
-    warningLayout->addWidget(m_warningEnabled, 0, 0, 1, 2);
-    warningLayout->addWidget(new QLabel(tr("Message:"), warningBox), 1, 0);
-    warningLayout->addWidget(m_warningMessage, 1, 1);
-    warningLayout->addWidget(new QLabel(tr("Countdown:"), warningBox), 2, 0);
-    warningLayout->addWidget(m_warningCountdown, 2, 1);
-    warningLayout->addWidget(new QLabel(tr("Snooze interval:"), warningBox), 3, 0);
-    warningLayout->addWidget(m_warningSnooze, 3, 1);
-
-    layout->addWidget(warningBox);
 
     auto *buttonRow = new QHBoxLayout();
     buttonRow->addStretch();
@@ -184,6 +156,43 @@ QWidget *MainWindow::buildWeeklyTab() {
     layout->addWidget(button, 0, Qt::AlignRight);
 
     connect(button, &QPushButton::clicked, this, &MainWindow::scheduleNextFromWeekly);
+
+    return tab;
+}
+
+QWidget *MainWindow::buildSettingsTab() {
+    auto *tab = new QWidget(this);
+    auto *layout = new QVBoxLayout(tab);
+
+    auto *actionsBox = new QGroupBox(tr("Power action"), tab);
+    auto *actionsLayout = new QVBoxLayout(actionsBox);
+    populateActionGroup(actionsLayout);
+    layout->addWidget(actionsBox);
+
+    auto *warningBox = new QGroupBox(tr("Warning banner"), tab);
+    auto *warningLayout = new QGridLayout(warningBox);
+    m_warningEnabled = new QCheckBox(tr("Show warning before sleeping"), warningBox);
+    m_warningMessage = new QLineEdit(tr("System will suspend soon. Save your work."), warningBox);
+    m_warningCountdown = new QSpinBox(warningBox);
+    m_warningCountdown->setRange(5, 600);
+    m_warningCountdown->setValue(30);
+    m_warningCountdown->setSuffix(tr(" s"));
+
+    m_warningSnooze = new QSpinBox(warningBox);
+    m_warningSnooze->setRange(1, 120);
+    m_warningSnooze->setValue(5);
+    m_warningSnooze->setSuffix(tr(" min"));
+
+    warningLayout->addWidget(m_warningEnabled, 0, 0, 1, 2);
+    warningLayout->addWidget(new QLabel(tr("Message:"), warningBox), 1, 0);
+    warningLayout->addWidget(m_warningMessage, 1, 1);
+    warningLayout->addWidget(new QLabel(tr("Countdown:"), warningBox), 2, 0);
+    warningLayout->addWidget(m_warningCountdown, 2, 1);
+    warningLayout->addWidget(new QLabel(tr("Snooze interval:"), warningBox), 3, 0);
+    warningLayout->addWidget(m_warningSnooze, 3, 1);
+
+    layout->addWidget(warningBox);
+    layout->addStretch();
 
     return tab;
 }
