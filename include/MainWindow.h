@@ -18,6 +18,7 @@ class QSpinBox;
 class QTableWidget;
 class QTimeEdit;
 class QVBoxLayout;
+class QSlider;
 
 /**
  * @brief Feature-rich window that lets the user plan rtcwake events.
@@ -46,6 +47,7 @@ private:
     QWidget *buildSettingsTab();
     void populateActionGroup(QVBoxLayout *layout);
     void connectSignals();
+    void updateSoundControls();
 
     void loadSettings();
     void saveSettings(const QString &reason);
@@ -75,6 +77,12 @@ private:
     QLineEdit *m_warningMessage {nullptr};
     QSpinBox *m_warningCountdown {nullptr};
     QSpinBox *m_warningSnooze {nullptr};
+    QCheckBox *m_soundEnabled {nullptr};
+    QLineEdit *m_soundFile {nullptr};
+    QPushButton *m_soundBrowse {nullptr};
+    QPushButton *m_soundReset {nullptr};
+    QSlider *m_soundVolume {nullptr};
+    QLabel *m_soundVolumeLabel {nullptr};
 
     QTableWidget *m_scheduleTable {nullptr};
     QVector<WeeklyRow> m_weeklyRows;

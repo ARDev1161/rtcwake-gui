@@ -7,6 +7,9 @@
 #include <QCloseEvent>
 #include <QDateEdit>
 #include <QDateTime>
+#include <QDir>
+#include <QFileDialog>
+#include <QFileInfo>
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHeaderView>
@@ -19,6 +22,7 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QSlider>
 #include <QSpinBox>
 #include <QTabWidget>
 #include <QTableWidget>
@@ -39,6 +43,8 @@ QString currentUser() {
     }
     return QStringLiteral("unknown");
 }
+
+const QString kDefaultSoundPath = QStringLiteral(":/rtcwake/sounds/chime.wav");
 }
 
 MainWindow::MainWindow(QWidget *parent)
@@ -193,6 +199,28 @@ QWidget *MainWindow::buildSettingsTab() {
     m_warningSnooze->setValue(5);
     m_warningSnooze->setSuffix(tr(" min"));
 
+    m_soundEnabled = new QCheckBox(tr("Play sound alert"), warningBox);
+    m_soundFile = new QLineEdit(kDefaultSoundPath, warningBox);
+    m_soundFile->setPlaceholderText(kDefaultSoundPath);
+    m_soundBrowse = new QPushButton(tr("Browse..."), warningBox);
+    m_soundReset = new QPushButton(tr("Use bundled tone"), warningBox);
+    auto *soundPathWidget = new QWidget(warningBox);
+    auto *soundPathLayout = new QHBoxLayout(soundPathWidget);
+    soundPathLayout->setContentsMargins(0, 0, 0, 0);
+    soundPathLayout->addWidget(m_soundFile);
+    soundPathLayout->addWidget(m_soundBrowse);
+    soundPathLayout->addWidget(m_soundReset);
+
+    m_soundVolume = new QSlider(Qt::Horizontal, warningBox);
+    m_soundVolume->setRange(0, 100);
+    m_soundVolume->setValue(70);
+    m_soundVolumeLabel = new QLabel(tr("70%"), warningBox);
+    auto *volumeWidget = new QWidget(warningBox);
+    auto *volumeLayout = new QHBoxLayout(volumeWidget);
+    volumeLayout->setContentsMargins(0, 0, 0, 0);
+    volumeLayout->addWidget(m_soundVolume, 1);
+    volumeLayout->addWidget(m_soundVolumeLabel);
+
     warningLayout->addWidget(m_warningEnabled, 0, 0, 1, 2);
     warningLayout->addWidget(new QLabel(tr("Message:"), warningBox), 1, 0);
     warningLayout->addWidget(m_warningMessage, 1, 1);
@@ -200,9 +228,15 @@ QWidget *MainWindow::buildSettingsTab() {
     warningLayout->addWidget(m_warningCountdown, 2, 1);
     warningLayout->addWidget(new QLabel(tr("Snooze interval:"), warningBox), 3, 0);
     warningLayout->addWidget(m_warningSnooze, 3, 1);
+    warningLayout->addWidget(m_soundEnabled, 4, 0, 1, 2);
+    warningLayout->addWidget(new QLabel(tr("Sound file:"), warningBox), 5, 0);
+    warningLayout->addWidget(soundPathWidget, 5, 1);
+    warningLayout->addWidget(new QLabel(tr("Volume:"), warningBox), 6, 0);
+    warningLayout->addWidget(volumeWidget, 6, 1);
 
     layout->addWidget(warningBox);
     layout->addStretch();
+    updateSoundControls();
 
     return tab;
 }
@@ -234,6 +268,55 @@ void MainWindow::connectSignals() {
             m_clockWidget->setTime(time);
         }
     });
+
+    if (m_soundEnabled) {
+        connect(m_soundEnabled, &QCheckBox::toggled, this, [this](bool) { updateSoundControls(); });
+    }
+    if (m_soundBrowse) {
+        connect(m_soundBrowse, &QPushButton::clicked, this, [this]() {
+            const QString start = m_soundFile && !m_soundFile->text().isEmpty() ? QFileInfo(m_soundFile->text()).absolutePath()
+                                                                                : QDir::homePath();
+            const QString filter = tr("Audio files (*.wav *.mp3 *.ogg *.flac);;All files (*)");
+            const QString selected = QFileDialog::getOpenFileName(this, tr("Select sound file"), start, filter);
+            if (!selected.isEmpty()) {
+                m_soundFile->setText(selected);
+            }
+        });
+    }
+    if (m_soundReset) {
+        connect(m_soundReset, &QPushButton::clicked, this, [this]() {
+            if (m_soundFile) {
+                m_soundFile->setText(kDefaultSoundPath);
+            }
+        });
+    }
+    if (m_soundVolume) {
+        connect(m_soundVolume, &QSlider::valueChanged, this, [this](int value) {
+            if (m_soundVolumeLabel) {
+                m_soundVolumeLabel->setText(tr("%1%").arg(value));
+            }
+        });
+    }
+}
+
+void MainWindow::updateSoundControls() {
+    const bool enabled = m_soundEnabled && m_soundEnabled->isChecked();
+    const auto toggle = [enabled](QWidget *widget) {
+        if (widget) {
+            widget->setEnabled(enabled);
+        }
+    };
+    toggle(m_soundFile);
+    toggle(m_soundBrowse);
+    toggle(m_soundReset);
+    if (m_soundVolume) {
+        m_soundVolume->setEnabled(enabled);
+    }
+    if (m_soundVolumeLabel) {
+        m_soundVolumeLabel->setEnabled(enabled);
+        const int value = m_soundVolume ? m_soundVolume->value() : 0;
+        m_soundVolumeLabel->setText(tr("%1%").arg(value));
+    }
 }
 
 void MainWindow::loadSettings() {
@@ -259,6 +342,16 @@ void MainWindow::applyConfigToUi() {
     m_warningMessage->setText(m_config.warning.message);
     m_warningCountdown->setValue(m_config.warning.countdownSeconds);
     m_warningSnooze->setValue(m_config.warning.snoozeMinutes);
+    if (m_soundEnabled) {
+        m_soundEnabled->setChecked(m_config.warning.soundEnabled);
+    }
+    if (m_soundFile) {
+        m_soundFile->setText(m_config.warning.soundFile);
+    }
+    if (m_soundVolume) {
+        m_soundVolume->setValue(m_config.warning.soundVolume);
+    }
+    updateSoundControls();
 
     for (auto &row : m_weeklyRows) {
         if (auto *entry = weeklyConfig(row.day)) {
@@ -282,6 +375,15 @@ void MainWindow::collectUiIntoConfig() {
     m_config.warning.message = m_warningMessage->text();
     m_config.warning.countdownSeconds = m_warningCountdown->value();
     m_config.warning.snoozeMinutes = m_warningSnooze->value();
+    m_config.warning.soundEnabled = m_soundEnabled && m_soundEnabled->isChecked();
+    QString soundPath = m_soundFile ? m_soundFile->text().trimmed() : QString();
+    if (soundPath.isEmpty()) {
+        soundPath = kDefaultSoundPath;
+    }
+    m_config.warning.soundFile = soundPath;
+    if (m_soundVolume) {
+        m_config.warning.soundVolume = m_soundVolume->value();
+    }
 
     for (const auto &row : m_weeklyRows) {
         if (auto *entry = weeklyConfig(row.day)) {

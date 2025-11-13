@@ -29,7 +29,7 @@ add_executable(rtcwake-gui
 
 target_include_directories(rtcwake-gui PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
-target_link_libraries(rtcwake-gui PRIVATE Qt5::Core Qt5::Gui Qt5::Widgets)
+target_link_libraries(rtcwake-gui PRIVATE Qt5::Core Qt5::Gui Qt5::Widgets Qt5::Multimedia)
 
 if(BUILD_DAEMON)
     add_executable(rtcwake-daemon
@@ -56,5 +56,5 @@ if(BUILD_DAEMON)
         ${CMAKE_SOURCE_DIR}/include/WarningBanner.h
     )
     target_include_directories(rtcwake-warning PRIVATE ${CMAKE_SOURCE_DIR}/include)
-    target_link_libraries(rtcwake-warning PRIVATE Qt5::Core Qt5::Gui Qt5::Widgets)
+    target_link_libraries(rtcwake-warning PRIVATE Qt5::Core Qt5::Gui Qt5::Widgets Qt5::Multimedia)
 endif()

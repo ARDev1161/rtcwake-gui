@@ -14,7 +14,7 @@ option(BUILD_PLASMA_WIDGET "Build the optional Plasma widget" OFF)
 option(BUILD_DAEMON "Build the rtcwake background daemon" ON)
 option(ENABLE_DOXYGEN "Generate API documentation with Doxygen" OFF)
 
-find_package(Qt5 5.12 REQUIRED COMPONENTS Core Gui Widgets)
+find_package(Qt5 5.12 REQUIRED COMPONENTS Core Gui Widgets Multimedia)
 
 add_subdirectory(src)
 if(BUILD_TESTING)

@@ -38,6 +38,9 @@ void ConfigRepositoryTest::saveAndLoad() {
     config.warning.message = QStringLiteral("Test message");
     config.warning.countdownSeconds = 42;
     config.warning.snoozeMinutes = 3;
+    config.warning.soundEnabled = true;
+    config.warning.soundFile = QStringLiteral("/tmp/custom.wav");
+    config.warning.soundVolume = 80;
     config.session.user = QStringLiteral("tester");
     config.session.display = QStringLiteral(":1");
     config.session.xdgRuntimeDir = QStringLiteral("/run/user/999");
@@ -61,6 +64,9 @@ void ConfigRepositoryTest::saveAndLoad() {
     QCOMPARE(loaded.warning.message, config.warning.message);
     QCOMPARE(loaded.warning.countdownSeconds, config.warning.countdownSeconds);
     QCOMPARE(loaded.warning.snoozeMinutes, config.warning.snoozeMinutes);
+    QCOMPARE(loaded.warning.soundEnabled, config.warning.soundEnabled);
+    QCOMPARE(loaded.warning.soundFile, config.warning.soundFile);
+    QCOMPARE(loaded.warning.soundVolume, config.warning.soundVolume);
     QCOMPARE(loaded.session.user, config.session.user);
     QCOMPARE(loaded.session.display, config.session.display);
     QCOMPARE(loaded.session.xdgRuntimeDir, config.session.xdgRuntimeDir);

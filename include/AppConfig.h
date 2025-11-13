@@ -13,6 +13,9 @@ struct WarningPreferences {
     QString message {QStringLiteral("System will suspend soon. Save your work.")};
     int countdownSeconds {30};
     int snoozeMinutes {5};
+    bool soundEnabled {false};
+    QString soundFile {QStringLiteral(":/rtcwake/sounds/chime.wav")};
+    int soundVolume {70};
 };
 
 /** Entry representing a weekly schedule row. */

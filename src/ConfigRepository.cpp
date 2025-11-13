@@ -107,6 +107,12 @@ AppConfig ConfigRepository::parse(const QByteArray &json) const {
         config.warning.message = warningObj.value(QStringLiteral("message")).toString(config.warning.message);
         config.warning.countdownSeconds = warningObj.value(QStringLiteral("countdownSeconds")).toInt(config.warning.countdownSeconds);
         config.warning.snoozeMinutes = warningObj.value(QStringLiteral("snoozeMinutes")).toInt(config.warning.snoozeMinutes);
+        config.warning.soundEnabled = warningObj.value(QStringLiteral("soundEnabled")).toBool(config.warning.soundEnabled);
+        const QString soundFile = warningObj.value(QStringLiteral("soundFile")).toString();
+        if (!soundFile.isEmpty()) {
+            config.warning.soundFile = soundFile;
+        }
+        config.warning.soundVolume = warningObj.value(QStringLiteral("soundVolume")).toInt(config.warning.soundVolume);
     }
 
     QHash<int, WeeklyEntry> overrides;
@@ -169,6 +175,9 @@ QByteArray ConfigRepository::serialize(const AppConfig &config) const {
     warningObj.insert(QStringLiteral("message"), config.warning.message);
     warningObj.insert(QStringLiteral("countdownSeconds"), config.warning.countdownSeconds);
     warningObj.insert(QStringLiteral("snoozeMinutes"), config.warning.snoozeMinutes);
+    warningObj.insert(QStringLiteral("soundEnabled"), config.warning.soundEnabled);
+    warningObj.insert(QStringLiteral("soundFile"), config.warning.soundFile);
+    warningObj.insert(QStringLiteral("soundVolume"), config.warning.soundVolume);
     root.insert(QStringLiteral("warning"), warningObj);
 
     QJsonArray weeklyArray;

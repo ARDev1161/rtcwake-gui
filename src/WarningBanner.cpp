@@ -4,6 +4,21 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include <QSoundEffect>
+#include <QUrl>
+#include <algorithm>
+
+namespace {
+QUrl soundUrlFromPath(const QString &path) {
+    if (path.startsWith(QStringLiteral("qrc:/"))) {
+        return QUrl(path);
+    }
+    if (path.startsWith(QStringLiteral(":/"))) {
+        return QUrl(QStringLiteral("qrc%1").arg(path));
+    }
+    return QUrl::fromLocalFile(path);
+}
+}
 
 WarningBanner::WarningBanner(const QString &message, int countdownSeconds, QWidget *parent)
     : QDialog(parent), m_secondsLeft(countdownSeconds) {
@@ -46,8 +61,10 @@ WarningBanner::WarningBanner(const QString &message, int countdownSeconds, QWidg
 WarningBanner::Result WarningBanner::execWithCountdown() {
     m_timer.start(1000);
     handleTick();
+    startSound();
     const int dialogResult = exec();
     m_timer.stop();
+    stopSound();
     if (dialogResult == QDialog::Rejected && m_result == Result::Cancelled) {
         return Result::Cancelled;
     }
@@ -62,4 +79,31 @@ void WarningBanner::handleTick() {
         return;
     }
     --m_secondsLeft;
+}
+
+void WarningBanner::setSoundOptions(bool enabled, const QString &filePath, int volumePercent) {
+    m_soundEnabled = enabled;
+    m_soundFile = filePath;
+    m_soundVolume = volumePercent;
+}
+
+void WarningBanner::startSound() {
+    if (!m_soundEnabled) {
+        return;
+    }
+    const QString source = m_soundFile.isEmpty() ? QStringLiteral(":/rtcwake/sounds/chime.wav") : m_soundFile;
+    auto effect = std::make_unique<QSoundEffect>(this);
+    effect->setSource(soundUrlFromPath(source));
+    const int clamped = std::clamp(m_soundVolume, 0, 100);
+    effect->setVolume(static_cast<qreal>(clamped) / 100.0);
+    effect->setLoopCount(QSoundEffect::Infinite);
+    effect->play();
+    m_soundEffect = std::move(effect);
+}
+
+void WarningBanner::stopSound() {
+    if (m_soundEffect) {
+        m_soundEffect->stop();
+        m_soundEffect.reset();
+    }
 }

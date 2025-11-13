@@ -2,10 +2,11 @@
 
 #include <QDialog>
 #include <QTimer>
+#include <QSoundEffect>
+#include <memory>
 
 class QLabel;
 class QPushButton;
-
 /**
  * @brief Modal dialog that counts down before executing the selected power action.
  */
@@ -21,6 +22,11 @@ public:
     };
 
     WarningBanner(const QString &message, int countdownSeconds, QWidget *parent = nullptr);
+
+    /**
+     * @brief Configure the optional audio alert.
+     */
+    void setSoundOptions(bool enabled, const QString &filePath, int volumePercent);
 
     /**
      * @brief Show the dialog and tick down the timer automatically.
@@ -39,4 +45,11 @@ private:
     QPushButton *m_postponeButton {nullptr};
     Result m_result {Result::Cancelled};
     QTimer m_timer;
+    bool m_soundEnabled {false};
+    QString m_soundFile;
+    int m_soundVolume {70};
+    std::unique_ptr<QSoundEffect> m_soundEffect;
+
+    void startSound();
+    void stopSound();
 };

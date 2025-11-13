@@ -11,6 +11,7 @@
 #include <QProcess>
 #include <QLocale>
 #include <limits>
+#include <algorithm>
 
 namespace {
 constexpr int kPeriodicIntervalMs = 5 * 60 * 1000; // 5 minutes
@@ -172,6 +173,14 @@ RtcWakeDaemon::WarningOutcome RtcWakeDaemon::invokeWarning(const QDateTime &shut
     args << QStringLiteral("--message") << m_config.warning.message;
     args << QStringLiteral("--countdown") << QString::number(m_config.warning.countdownSeconds);
     args << QStringLiteral("--snooze") << QString::number(m_config.warning.snoozeMinutes);
+    if (m_config.warning.soundEnabled) {
+        args << QStringLiteral("--sound-enabled");
+        if (!m_config.warning.soundFile.isEmpty()) {
+            args << QStringLiteral("--sound-file") << m_config.warning.soundFile;
+        }
+        const int volume = std::clamp(m_config.warning.soundVolume, 0, 100);
+        args << QStringLiteral("--volume") << QString::number(volume);
+    }
     args << QStringLiteral("--action") << RtcWakeController::actionLabel(action);
 
     QProcess process;

@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/rtcwake">
         <file>icons/clock.svg</file>
+        <file>sounds/chime.wav</file>
     </qresource>
 </RCC>
