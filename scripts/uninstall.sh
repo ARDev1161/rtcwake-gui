@@ -6,7 +6,11 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
-TARGET_USER=${SUDO_USER:-$(logname 2>/dev/null || root)}
+if [[ -n ${SUDO_USER:-} ]]; then
+  TARGET_USER=${SUDO_USER}
+else
+  TARGET_USER=$(logname 2>/dev/null || echo root)
+fi
 TARGET_HOME=$(eval echo "~${TARGET_USER}")
 if [[ ! -d ${TARGET_HOME} ]]; then
   TARGET_HOME="/home/${TARGET_USER}"

@@ -276,8 +276,7 @@ void MainWindow::collectUiIntoConfig() {
     m_config.singleShutdownTime = m_shutdownTimeEdit->time();
     m_config.singleWakeDate = m_dateEdit->date();
     m_config.singleWakeTime = m_timeEdit->time();
-    m_config.actionId = currentAction() == PowerAction::None ? static_cast<int>(PowerAction::SuspendToRam)
-                                                             : static_cast<int>(currentAction());
+    m_config.actionId = static_cast<int>(currentAction());
 
     m_config.warning.enabled = m_warningEnabled->isChecked();
     m_config.warning.message = m_warningMessage->text();
