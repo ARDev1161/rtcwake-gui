@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ $EUID -eq 0 ]]; then
+  echo "Please run this script as a regular user, not root."
+  exit 1
+fi
+
 PROJECT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 BUILD_DIR=${PROJECT_ROOT}/build
 PREFIX=${HOME}/.local/bin
@@ -21,16 +26,25 @@ else
 fi
 
 # Check rtcwake permission
-if ! rtcwake --version >/dev/null 2>&1; then
+if ! command -v rtcwake >/dev/null 2>&1; then
   echo "rtcwake not found in PATH. Please install util-linux package."
   exit 1
 fi
 
 if ! rtcwake -m no -s 60 >/dev/null 2>&1; then
   echo "Warning: current user cannot run rtcwake without elevated privileges."
-  read -r -p "Re-run this installer with sudo? [y/N] " sudo_retry
-  if [[ ${sudo_retry:-N} =~ ^[Yy]$ ]]; then
-    exec sudo bash "$0"
+  if command -v sudo >/dev/null 2>&1; then
+    RTCWAKE_BIN=$(command -v rtcwake)
+    read -r -p "Grant rtcwake capability via 'sudo setcap cap_sys_time+ep ${RTCWAKE_BIN}'? [Y/n] " cap_reply
+    if [[ ${cap_reply:-Y} =~ ^[Yy]$ ]]; then
+      sudo setcap cap_sys_time+ep "${RTCWAKE_BIN}" || true
+    fi
+  else
+    echo "Install sudo or configure Polkit so rtcwake can run without a password."
+  fi
+
+  if ! rtcwake -m no -s 60 >/dev/null 2>&1; then
+    echo "rtcwake is still not usable without privileges. The GUI and daemon may fail until you configure access."
   fi
 fi
 
