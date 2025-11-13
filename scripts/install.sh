@@ -12,7 +12,15 @@ ICON_SRC=${PROJECT_ROOT}/resources/icons/clock.svg
 ICON_DST=${HOME}/.local/share/icons/hicolor/scalable/apps/rtcwake-gui.svg
 DESKTOP_USER_DIR=$(xdg-user-dir DESKTOP 2>/dev/null || echo "${HOME}/Desktop")
 
-cmake -S "${PROJECT_ROOT}" -B "${BUILD_DIR}" -DCMAKE_BUILD_TYPE=Release
+read -r -p "Build Plasma widget? [y/N] " build_plasma
+CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release"
+if [[ ${build_plasma:-N} =~ ^[Yy]$ ]]; then
+  CMAKE_ARGS="${CMAKE_ARGS} -DBUILD_PLASMA_WIDGET=ON"
+else
+  CMAKE_ARGS="${CMAKE_ARGS} -DBUILD_PLASMA_WIDGET=OFF"
+fi
+
+cmake -S "${PROJECT_ROOT}" -B "${BUILD_DIR}" ${CMAKE_ARGS}
 cmake --build "${BUILD_DIR}"
 cmake --build "${BUILD_DIR}" --target rtcwake-configrepo-test rtcwake-scheduleplanner-test
 (cd "${BUILD_DIR}" && ctest --output-on-failure)
