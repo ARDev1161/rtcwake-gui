@@ -8,6 +8,7 @@ set(UI_SOURCES
     AppConfig.cpp
     ConfigRepository.cpp
     SummaryWriter.cpp
+    SchedulePlanner.cpp
 )
 
 set(UI_HEADERS
@@ -38,11 +39,13 @@ if(BUILD_DAEMON)
         ConfigRepository.cpp
         AppConfig.cpp
         SummaryWriter.cpp
+        SchedulePlanner.cpp
         ${CMAKE_SOURCE_DIR}/include/RtcWakeDaemon.h
         ${CMAKE_SOURCE_DIR}/include/RtcWakeController.h
         ${CMAKE_SOURCE_DIR}/include/ConfigRepository.h
         ${CMAKE_SOURCE_DIR}/include/AppConfig.h
         ${CMAKE_SOURCE_DIR}/include/SummaryWriter.h
+        ${CMAKE_SOURCE_DIR}/include/SchedulePlanner.h
     )
     target_include_directories(rtcwake-daemon PRIVATE ${CMAKE_SOURCE_DIR}/include)
     target_link_libraries(rtcwake-daemon PRIVATE Qt5::Core)

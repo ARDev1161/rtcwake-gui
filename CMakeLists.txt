@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 project(rtcwake_gui VERSION 0.1.0 LANGUAGES CXX)
 
+include(CTest)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -15,6 +17,9 @@ option(ENABLE_DOXYGEN "Generate API documentation with Doxygen" OFF)
 find_package(Qt5 5.12 REQUIRED COMPONENTS Core Gui Widgets)
 
 add_subdirectory(src)
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
 
 if(BUILD_PLASMA_WIDGET)
     find_package(Qt5 REQUIRED COMPONENTS Quick QuickWidgets)

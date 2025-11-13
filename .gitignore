@@ -1,4 +1,5 @@
 build/
+Testing/
 *.user
 *.autosave
 CMakeLists.txt.user

@@ -1,6 +1,7 @@
 #include "RtcWakeDaemon.h"
 
 #include "SummaryWriter.h"
+#include "SchedulePlanner.h"
 
 #include <QCoreApplication>
 #include <QDateTime>
@@ -70,49 +71,10 @@ void RtcWakeDaemon::reloadConfig() {
     planNext();
 }
 
-bool RtcWakeDaemon::computeNext(QDateTime &targetLocal, PowerAction &action) const {
-    const QDateTime now = QDateTime::currentDateTime();
-    bool hasCandidate = false;
-    QDateTime best;
-
-    QDateTime single(m_config.singleDate, m_config.singleTime, now.timeZone());
-    if (single.isValid() && single > now) {
-        best = single;
-        hasCandidate = true;
-    }
-
-    for (const auto &entry : m_config.weekly) {
-        if (!entry.enabled) {
-            continue;
-        }
-        int offset = static_cast<int>(entry.day) - now.date().dayOfWeek();
-        if (offset < 0) {
-            offset += 7;
-        }
-        QDate candidateDate = now.date().addDays(offset);
-        QDateTime candidate(candidateDate, entry.time, now.timeZone());
-        if (candidate <= now) {
-            candidate = candidate.addDays(7);
-        }
-        if (!hasCandidate || candidate < best) {
-            best = candidate;
-            hasCandidate = true;
-        }
-    }
-
-    if (!hasCandidate) {
-        return false;
-    }
-
-    targetLocal = best;
-    action = static_cast<PowerAction>(m_config.actionId);
-    return true;
-}
-
 void RtcWakeDaemon::planNext() {
     QDateTime targetLocal;
     PowerAction action = PowerAction::None;
-    if (!computeNext(targetLocal, action)) {
+    if (!SchedulePlanner::nextEvent(m_config, QDateTime::currentDateTime(), targetLocal, action)) {
         log(QStringLiteral("No upcoming events found in config."));
         return;
     }

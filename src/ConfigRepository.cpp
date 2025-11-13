@@ -9,6 +9,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QStandardPaths>
+#include <QDebug>
 #include <QTime>
 
 namespace {
@@ -36,11 +37,13 @@ bool ConfigRepository::save(const AppConfig &config) const {
     const QString path = configPath();
     QFile file(path);
     QDir dir = QFileInfo(path).absoluteDir();
-    if (!dir.exists() && !dir.mkpath(QStringLiteral("."))) {
+    if (!dir.exists() && !QDir().mkpath(dir.absolutePath())) {
+        qWarning() << "Failed to create config dir" << dir.absolutePath();
         return false;
     }
 
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+        qWarning() << "Failed to open config file" << path << file.errorString();
         return false;
     }
 

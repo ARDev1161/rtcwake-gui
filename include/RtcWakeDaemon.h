@@ -28,7 +28,6 @@ private:
     void watchConfig();
     void reloadConfig();
     void planNext();
-    bool computeNext(QDateTime &targetLocal, PowerAction &action) const;
     void log(const QString &message) const;
 
     ConfigRepository m_repo;

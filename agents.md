@@ -6,6 +6,7 @@
 - `plasma-widget/` is an optional plasmoid package installed via `BUILD_PLASMA_WIDGET`.
 - `systemd/rtcwake-daemon.service` is a user-service template that launches `rtcwake-daemon`.
 - `~/.config/rtcwake-gui/config.json` (managed by `ConfigRepository`) keeps the persisted schedules.
+- `tests/` contains Qt Test suites (run with `ctest`) for config IO and scheduling logic.
 
 ## Build & Test
 1. Configure: `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release`
@@ -20,6 +21,7 @@ No automated tests exist yet; please launch `build/src/rtcwake-gui` manually whe
 - When touching scheduling logic, update the JSON summary writer so the Plasma widget stays in sync.
 - Keep documentation (README.md + Doxygen comments) in sync with UI labels.
 - The daemon (`rtcwake-daemon`) must stay headless and rely only on QtCore.
+- Always run `ctest` after touching persistence or scheduling code.
 
 ## Known Gaps
 - Weekly schedule only arms the next occurrence (no daemon to reschedule automatically).

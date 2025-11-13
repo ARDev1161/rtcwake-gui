@@ -51,6 +51,14 @@ After installation, add *rtcwake Planner* from the Plasma widgets list. The plas
 ## Documentation
 Enable Doxygen while configuring or run `cmake --build build --target doxygen_docs` once `ENABLE_DOXYGEN=ON`. The generated HTML ends up in `build/docs/html/index.html`.
 
+## Tests
+Qt-based unit tests live under `tests/` and cover the configuration serializer plus the schedule planner helper. Enable testing (on by default) and execute:
+
+```bash
+cmake --build build --target rtcwake-configrepo-test rtcwake-scheduleplanner-test
+ctest --output-on-failure
+```
+
 ## Daemon & systemd service
 The repository ships a lightweight daemon (`rtcwake-daemon`) that re-arms the next wake alarm using your saved config. Build it with the default options or explicitly via:
 
