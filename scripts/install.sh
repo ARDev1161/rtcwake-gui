@@ -10,6 +10,7 @@ DESKTOP_SRC=${PROJECT_ROOT}/resources/rtcwake-gui.desktop
 DESKTOP_DST=${HOME}/.local/share/applications/rtcwake-gui.desktop
 ICON_SRC=${PROJECT_ROOT}/resources/icons/clock.svg
 ICON_DST=${HOME}/.local/share/icons/hicolor/scalable/apps/rtcwake-gui.svg
+DESKTOP_USER_DIR=$(xdg-user-dir DESKTOP 2>/dev/null || echo "${HOME}/Desktop")
 
 cmake -S "${PROJECT_ROOT}" -B "${BUILD_DIR}" -DCMAKE_BUILD_TYPE=Release
 cmake --build "${BUILD_DIR}"
@@ -30,6 +31,11 @@ fi
 if [ -f "${DESKTOP_SRC}" ]; then
   mkdir -p "$(dirname "${DESKTOP_DST}")"
   install -m 644 "${DESKTOP_SRC}" "${DESKTOP_DST}"
+  read -r -p "Create desktop shortcut in ${DESKTOP_USER_DIR}? [y/N] " answer
+  if [[ ${answer:-N} =~ ^[Yy]$ ]]; then
+    mkdir -p "${DESKTOP_USER_DIR}"
+    install -m 744 "${DESKTOP_SRC}" "${DESKTOP_USER_DIR}/rtcwake-gui.desktop"
+  fi
 fi
 
 if [ -f "${ICON_SRC}" ]; then
