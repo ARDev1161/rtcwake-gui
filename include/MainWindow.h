@@ -35,23 +35,27 @@ protected:
     void closeEvent(QCloseEvent *event) override;
 
 private:
+    /** Identifies which part of the UI initiated a schedule request. */
     enum class ScheduleOrigin {
         Single,
         Weekly
     };
 
+    /** Helper pointers bound to the weekly table. */
     struct WeeklyRow {
         Qt::DayOfWeek day;
         QCheckBox *enabled {nullptr};
         QTimeEdit *timeEdit {nullptr};
     };
 
+    /** Snapshot of a postponed request so it can be retried later. */
     struct PendingSchedule {
         QDateTime target;
         PowerAction action {PowerAction::None};
         ScheduleOrigin origin {ScheduleOrigin::Single};
     };
 
+    /** Runtime configuration selected by the warning controls. */
     struct WarningConfig {
         bool enabled {false};
         QString message;

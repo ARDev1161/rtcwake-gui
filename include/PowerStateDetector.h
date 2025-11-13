@@ -9,6 +9,7 @@
  */
 class PowerStateDetector {
 public:
+    /** Single action option for the main UI. */
     struct Option {
         PowerAction action;
         QString label;
@@ -16,5 +17,8 @@ public:
         bool available;
     };
 
+    /**
+     * @brief Inspect the kernel capabilities and expose radio button metadata.
+     */
     QVector<Option> detect() const;
 };

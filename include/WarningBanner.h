@@ -13,6 +13,7 @@ class WarningBanner : public QDialog {
     Q_OBJECT
 
 public:
+    /** Modal outcome communicated back to the caller. */
     enum class Result {
         ApplyNow,
         Postpone,
@@ -21,6 +22,10 @@ public:
 
     WarningBanner(const QString &message, int countdownSeconds, QWidget *parent = nullptr);
 
+    /**
+     * @brief Show the dialog and tick down the timer automatically.
+     * @return User choice once the dialog closes.
+     */
     Result execWithCountdown();
 
 private slots:

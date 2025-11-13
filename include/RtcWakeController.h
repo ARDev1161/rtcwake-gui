@@ -22,6 +22,7 @@ class RtcWakeController : public QObject {
     Q_OBJECT
 
 public:
+    /** Result bundle returned from every process invocation. */
     struct CommandResult {
         bool success {false};
         QString stdOut;
@@ -31,7 +32,16 @@ public:
 
     explicit RtcWakeController(QObject *parent = nullptr);
 
+    /**
+     * @brief Program the RTC using rtcwake.
+     * @param targetUtc Absolute wake time in UTC.
+     * @param action Power transition to execute immediately.
+     */
     CommandResult scheduleWake(const QDateTime &targetUtc, PowerAction action) const;
+
+    /**
+     * @brief Run a plain systemctl power command without touching the RTC.
+     */
     CommandResult executePowerAction(PowerAction action) const;
 
     static QString actionLabel(PowerAction action);

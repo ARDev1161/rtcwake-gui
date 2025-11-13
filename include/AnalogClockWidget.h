@@ -12,6 +12,7 @@ class AnalogClockWidget : public QWidget {
 public:
     explicit AnalogClockWidget(QWidget *parent = nullptr);
 
+    /** Update the displayed time. */
     void setTime(const QTime &time);
     QTime time() const { return m_time; }
 
