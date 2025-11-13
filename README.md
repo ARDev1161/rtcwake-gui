@@ -21,9 +21,12 @@ Friendly Qt5 desktop app that helps you arm `rtcwake`, pick the shutdown/suspend
 ## Usage
 The fastest way to install and start the daemon is via the helper script:
 ```bash
-./scripts/install.sh
+sudo ./scripts/install.sh
 ```
-It configures the project in Release mode (asking whether to include the optional Plasma widget), checks/patches your `rtcwake` permissions (offering to call `sudo setcap` if needed), builds the GUI + daemon + tests, runs `ctest`, installs binaries into `~/.local/bin`, installs a launcher entry + icon automatically, optionally adds a desktop shortcut (prompted), copies the systemd user unit, and offers to enable the daemon right away. To remove everything later, run `./scripts/uninstall.sh`.
+It configures the project in Release mode (asking whether to include the optional Plasma widget), checks/patches your `rtcwake` permissions (offering to call `setcap` so non-root apps can use it), builds the GUI + daemon + tests, runs `ctest`, installs binaries into `/usr/local/bin`, installs a launcher entry + icon automatically, optionally adds a desktop shortcut for the invoking user, installs a system-wide `rtcwake-daemon` service, and offers to enable that service immediately. Remove everything later via:
+```bash
+sudo ./scripts/uninstall.sh
+```
 
 ## Manual build
 ```bash
@@ -71,10 +74,10 @@ The repository ships a lightweight daemon (`rtcwake-daemon`) that re-arms the ne
 cmake --build build --target rtcwake-daemon
 ```
 
-Install it somewhere on your `$PATH` (for example `~/.local/bin/rtcwake-daemon`) and copy `systemd/rtcwake-daemon.service` to `~/.config/systemd/user/`. Update `ExecStart` if you chose a different install path, then enable it:
+Install it somewhere on your `$PATH` (for example `/usr/local/bin/rtcwake-daemon`) and copy `systemd/rtcwake-daemon.service` to `/etc/systemd/system/`. Update `ExecStart` if you chose a different install path, then enable it:
 
 ```bash
-systemctl --user enable --now rtcwake-daemon.service
+sudo systemctl enable --now rtcwake-daemon.service
 ```
 
 The daemon watches `~/.config/rtcwake-gui/config.json`, re-arms the upcoming wake using `rtcwake -m no`, and refreshes the JSON summary read by the Plasma widget. It does not power down the machine automatically; use the GUI or your own workflow for that part.

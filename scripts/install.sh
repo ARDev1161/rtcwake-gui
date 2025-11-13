@@ -1,53 +1,53 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $EUID -eq 0 ]]; then
-  echo "Please run this script as a regular user, not root."
+if [[ $EUID -ne 0 ]]; then
+  echo "Please run this script with sudo."
   exit 1
+fi
+
+TARGET_USER=${SUDO_USER:-$(logname 2>/dev/null || root)}
+TARGET_HOME=$(eval echo "~${TARGET_USER}")
+if [[ ! -d ${TARGET_HOME} ]]; then
+  TARGET_HOME="/home/${TARGET_USER}"
 fi
 
 PROJECT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 BUILD_DIR=${PROJECT_ROOT}/build
-PREFIX=${HOME}/.local/bin
+PREFIX=/usr/local/bin
 SERVICE_SRC=${PROJECT_ROOT}/systemd/rtcwake-daemon.service
-SERVICE_DST=${HOME}/.config/systemd/user/rtcwake-daemon.service
+SERVICE_DST=/etc/systemd/system/rtcwake-daemon.service
 DESKTOP_SRC=${PROJECT_ROOT}/resources/rtcwake-gui.desktop
-DESKTOP_DST=${HOME}/.local/share/applications/rtcwake-gui.desktop
+DESKTOP_DST=/usr/share/applications/rtcwake-gui.desktop
 ICON_SRC=${PROJECT_ROOT}/resources/icons/clock.svg
-ICON_DST=${HOME}/.local/share/icons/hicolor/scalable/apps/rtcwake-gui.svg
-DESKTOP_USER_DIR=$(xdg-user-dir DESKTOP 2>/dev/null || echo "${HOME}/Desktop")
+ICON_DST=/usr/share/icons/hicolor/scalable/apps/rtcwake-gui.svg
+DESKTOP_USER_DIR=$(sudo -u "${TARGET_USER}" xdg-user-dir DESKTOP 2>/dev/null || echo "${TARGET_HOME}/Desktop")
 
 read -r -p "Build Plasma widget? [y/N] " build_plasma
 CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release"
 if [[ ${build_plasma:-N} =~ ^[Yy]$ ]]; then
-  CMAKE_ARGS="${CMAKE_ARGS} -DBUILD_PLASMA_WIDGET=ON"
+  CMAKE_ARGS+=" -DBUILD_PLASMA_WIDGET=ON"
 else
-  CMAKE_ARGS="${CMAKE_ARGS} -DBUILD_PLASMA_WIDGET=OFF"
+  CMAKE_ARGS+=" -DBUILD_PLASMA_WIDGET=OFF"
 fi
 
-# Check rtcwake permission
 if ! command -v rtcwake >/dev/null 2>&1; then
   echo "rtcwake not found in PATH. Please install util-linux package."
   exit 1
 fi
 
-if ! rtcwake -m no -s 60 >/dev/null 2>&1; then
-  echo "Warning: current user cannot run rtcwake without elevated privileges."
-  if command -v sudo >/dev/null 2>&1; then
-    RTCWAKE_BIN=$(command -v rtcwake)
-    read -r -p "Grant rtcwake capability via 'sudo setcap cap_sys_time+ep ${RTCWAKE_BIN}'? [Y/n] " cap_reply
-    if [[ ${cap_reply:-Y} =~ ^[Yy]$ ]]; then
-      sudo setcap cap_sys_time+ep "${RTCWAKE_BIN}" || true
-    else
-      echo "Cannot proceed without rtcwake permissions. Aborting."
-      exit 1
-    fi
+if ! sudo -u "${TARGET_USER}" rtcwake -m no -s 60 >/dev/null 2>&1; then
+  echo "Warning: user ${TARGET_USER} cannot run rtcwake without elevated privileges."
+  RTCWAKE_BIN=$(command -v rtcwake)
+  read -r -p "Grant rtcwake capability via 'setcap cap_sys_time+ep ${RTCWAKE_BIN}'? [Y/n] " cap_reply
+  if [[ ${cap_reply:-Y} =~ ^[Yy]$ ]]; then
+    setcap cap_sys_time+ep "${RTCWAKE_BIN}" || true
   else
-    echo "sudo not available and rtcwake requires elevated permissions. Aborting."
+    echo "Cannot proceed without rtcwake permissions. Aborting."
     exit 1
   fi
 
-  if ! rtcwake -m no -s 60 >/dev/null 2>&1; then
+  if ! sudo -u "${TARGET_USER}" rtcwake -m no -s 60 >/dev/null 2>&1; then
     echo "rtcwake is still not usable without permissions. Aborting."
     exit 1
   fi
@@ -58,38 +58,35 @@ cmake --build "${BUILD_DIR}"
 cmake --build "${BUILD_DIR}" --target rtcwake-configrepo-test rtcwake-scheduleplanner-test
 (cd "${BUILD_DIR}" && ctest --output-on-failure)
 
-mkdir -p "${PREFIX}"
 install -m 755 "${BUILD_DIR}/src/rtcwake-gui" "${PREFIX}/rtcwake-gui"
-if [ -f "${BUILD_DIR}/src/rtcwake-daemon" ]; then
+if [[ -f "${BUILD_DIR}/src/rtcwake-daemon" ]]; then
   install -m 755 "${BUILD_DIR}/src/rtcwake-daemon" "${PREFIX}/rtcwake-daemon"
 fi
 
-mkdir -p "$(dirname "${SERVICE_DST}")"
-if [ -f "${SERVICE_SRC}" ]; then
+if [[ -f "${SERVICE_SRC}" ]]; then
   sed "s|ExecStart=.*|ExecStart=${PREFIX}/rtcwake-daemon|" "${SERVICE_SRC}" > "${SERVICE_DST}"
 fi
 
-if [ -f "${DESKTOP_SRC}" ]; then
-  mkdir -p "$(dirname "${DESKTOP_DST}")"
+if [[ -f "${DESKTOP_SRC}" ]]; then
   install -m 644 "${DESKTOP_SRC}" "${DESKTOP_DST}"
-  read -r -p "Create desktop shortcut in ${DESKTOP_USER_DIR}? [y/N] " answer
+  read -r -p "Create desktop shortcut for ${TARGET_USER} in ${DESKTOP_USER_DIR}? [y/N] " answer
   if [[ ${answer:-N} =~ ^[Yy]$ ]]; then
     mkdir -p "${DESKTOP_USER_DIR}"
     install -m 744 "${DESKTOP_SRC}" "${DESKTOP_USER_DIR}/rtcwake-gui.desktop"
+    chown "${TARGET_USER}:${TARGET_USER}" "${DESKTOP_USER_DIR}/rtcwake-gui.desktop"
   fi
 fi
 
-if [ -f "${ICON_SRC}" ]; then
-  mkdir -p "$(dirname "${ICON_DST}")"
+if [[ -f "${ICON_SRC}" ]]; then
   install -m 644 "${ICON_SRC}" "${ICON_DST}"
 fi
 
 echo "Binaries installed to ${PREFIX}."
-if [ -x "${PREFIX}/rtcwake-daemon" ]; then
-  read -r -p "Enable rtcwake-daemon systemd user service now? [Y/n] " reply
+if [[ -x "${PREFIX}/rtcwake-daemon" ]]; then
+  read -r -p "Enable system rtcwake-daemon service now? [Y/n] " reply
   reply=${reply:-Y}
   if [[ ${reply} =~ ^[Yy]$ ]]; then
-    systemctl --user daemon-reload || true
-    systemctl --user enable --now rtcwake-daemon.service || true
+    systemctl daemon-reload
+    systemctl enable --now rtcwake-daemon.service
   fi
 fi
