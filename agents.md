@@ -4,6 +4,7 @@
 - `src/` contains the Qt Widgets application entry point and implementation files.
 - `include/` mirrors the public headers; keep UI strings in English and prefer Qt-friendly types.
 - `plasma-widget/` is an optional plasmoid package installed via `BUILD_PLASMA_WIDGET`.
+- `systemd/rtcwake-daemon.service` is a user-service template that launches `rtcwake-daemon`.
 - `~/.config/rtcwake-gui/config.json` (managed by `ConfigRepository`) keeps the persisted schedules.
 
 ## Build & Test
@@ -18,6 +19,7 @@ No automated tests exist yet; please launch `build/src/rtcwake-gui` manually whe
 - Never remove the analog clock/time edit dual input requirement.
 - When touching scheduling logic, update the JSON summary writer so the Plasma widget stays in sync.
 - Keep documentation (README.md + Doxygen comments) in sync with UI labels.
+- The daemon (`rtcwake-daemon`) must stay headless and rely only on QtCore.
 
 ## Known Gaps
 - Weekly schedule only arms the next occurrence (no daemon to reschedule automatically).

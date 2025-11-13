@@ -40,6 +40,11 @@ public:
     CommandResult scheduleWake(const QDateTime &targetUtc, PowerAction action) const;
 
     /**
+     * @brief Only set the RTC alarm without leaving the current power state.
+     */
+    CommandResult programAlarm(const QDateTime &targetUtc) const;
+
+    /**
      * @brief Run a plain systemctl power command without touching the RTC.
      */
     CommandResult executePowerAction(PowerAction action) const;

@@ -1,0 +1,12 @@
+[Unit]
+Description=rtcwake planner daemon
+After=graphical-session.target
+ConditionPathExists=%h/.config/rtcwake-gui/config.json
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/rtcwake-daemon
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

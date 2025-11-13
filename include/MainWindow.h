@@ -81,7 +81,6 @@ private:
     void scheduleNextFromWeekly();
     void handleScheduleRequest(const QDateTime &targetLocal, PowerAction action, ScheduleOrigin origin);
     void scheduleRetry(int minutesDelay);
-    void persistSummary(const QDateTime &targetLocal, PowerAction action) const;
 
     void appendLog(const QString &line);
     WeeklyEntry *weeklyConfig(Qt::DayOfWeek day);

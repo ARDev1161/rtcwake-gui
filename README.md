@@ -12,6 +12,7 @@
 - Activity log with full command lines so you can copy/paste them into the terminal.
 - Optional Plasma widget (`org.kde.plasma.rtcwakeplanner`) that shows the next alarm and launches the planner.
 - JSON status exported to `~/.local/share/rtcwake-gui/next-wake.json` for integrations, plus a persistent config at `~/.config/rtcwake-gui/config.json`.
+- Optional background daemon that keeps the next wake alarm armed even if the GUI is not opened.
 
 ## Requirements
 - Qt 5.12+ (Widgets, Core, Gui, optionally Quick for the Plasma package).
@@ -27,6 +28,7 @@ cmake --build build
 
 Options:
 - `-DBUILD_PLASMA_WIDGET=ON` — installable Plasma widget (requires KF5Plasma + QtQuick).
+- `-DBUILD_DAEMON=OFF` — disable building the daemon if you don't need it.
 - `-DENABLE_DOXYGEN=ON` — generates API docs under `build/docs`.
 
 Run the application from `build/src/rtcwake-gui` (must have permission to call `rtcwake`).
@@ -48,6 +50,21 @@ After installation, add *rtcwake Planner* from the Plasma widgets list. The plas
 
 ## Documentation
 Enable Doxygen while configuring or run `cmake --build build --target doxygen_docs` once `ENABLE_DOXYGEN=ON`. The generated HTML ends up in `build/docs/html/index.html`.
+
+## Daemon & systemd service
+The repository ships a lightweight daemon (`rtcwake-daemon`) that re-arms the next wake alarm using your saved config. Build it with the default options or explicitly via:
+
+```bash
+cmake --build build --target rtcwake-daemon
+```
+
+Install it somewhere on your `$PATH` (for example `~/.local/bin/rtcwake-daemon`) and copy `systemd/rtcwake-daemon.service` to `~/.config/systemd/user/`. Update `ExecStart` if you chose a different install path, then enable it:
+
+```bash
+systemctl --user enable --now rtcwake-daemon.service
+```
+
+The daemon watches `~/.config/rtcwake-gui/config.json`, re-arms the upcoming wake using `rtcwake -m no`, and refreshes the JSON summary read by the Plasma widget. It does not power down the machine automatically; use the GUI or your own workflow for that part.
 
 ## Notes & Caveats
 - `rtcwake` needs elevated privileges on most systems; run the GUI under `sudo` or configure Polkit rules accordingly.

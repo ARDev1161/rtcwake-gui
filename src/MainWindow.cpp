@@ -1,13 +1,12 @@
 #include "MainWindow.h"
 
 #include "AnalogClockWidget.h"
+#include "SummaryWriter.h"
 
 #include <QButtonGroup>
 #include <QCheckBox>
 #include <QCloseEvent>
 #include <QDateEdit>
-#include <QDir>
-#include <QFile>
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHeaderView>
@@ -17,8 +16,6 @@
 #include <QLocale>
 #include <QLineEdit>
 #include <QMessageBox>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QRadioButton>
@@ -29,7 +26,6 @@
 #include <QTimeZone>
 #include <QTimer>
 #include <QVBoxLayout>
-#include <QStandardPaths>
 #include <QtGlobal>
 #include <algorithm>
 
@@ -358,7 +354,7 @@ void MainWindow::handleScheduleRequest(const QDateTime &targetLocal, PowerAction
             m_nextSummary->setText(tr("Wake at %1 (%2)")
                                        .arg(formatDateTime(targetLocal))
                                        .arg(RtcWakeController::actionLabel(action)));
-            persistSummary(targetLocal, action);
+            SummaryWriter::write(targetLocal, action);
         } else {
             appendLog(tr("Scheduling failed: %1").arg(result.stdErr));
             QMessageBox::critical(this, tr("rtcwake error"),
@@ -415,33 +411,4 @@ WeeklyEntry *MainWindow::weeklyConfig(Qt::DayOfWeek day) {
         return &m_config.weekly.last();
     }
     return &(*it);
-}
-
-void MainWindow::persistSummary(const QDateTime &targetLocal, PowerAction action) const {
-    const QString dirPath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
-        + QStringLiteral("/rtcwake-gui");
-    if (dirPath.isEmpty()) {
-        return;
-    }
-
-    QDir dir;
-    if (!dir.mkpath(dirPath)) {
-        return;
-    }
-
-    QFile file(dirPath + QStringLiteral("/next-wake.json"));
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
-        return;
-    }
-
-    QJsonObject payload;
-    payload.insert(QStringLiteral("timestamp"), static_cast<qint64>(targetLocal.toSecsSinceEpoch()));
-    payload.insert(QStringLiteral("localTime"), targetLocal.toString(Qt::ISODate));
-    payload.insert(QStringLiteral("friendly"), formatDateTime(targetLocal));
-    payload.insert(QStringLiteral("mode"), RtcWakeController::rtcwakeMode(action));
-    payload.insert(QStringLiteral("action"), RtcWakeController::actionLabel(action));
-
-    QJsonDocument doc(payload);
-    file.write(doc.toJson(QJsonDocument::Compact));
-    file.write("\n");
 }

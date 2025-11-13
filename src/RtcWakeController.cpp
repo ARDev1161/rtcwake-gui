@@ -13,6 +13,12 @@ RtcWakeController::CommandResult RtcWakeController::scheduleWake(const QDateTime
     return runProcess(args);
 }
 
+RtcWakeController::CommandResult RtcWakeController::programAlarm(const QDateTime &targetUtc) const {
+    const QString epoch = QString::number(targetUtc.toSecsSinceEpoch());
+    QStringList args {QStringLiteral("rtcwake"), QStringLiteral("-m"), QStringLiteral("no"), QStringLiteral("-t"), epoch};
+    return runProcess(args);
+}
+
 RtcWakeController::CommandResult RtcWakeController::executePowerAction(PowerAction action) const {
     QStringList args;
 
