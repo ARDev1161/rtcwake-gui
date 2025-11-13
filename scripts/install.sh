@@ -20,6 +20,20 @@ else
   CMAKE_ARGS="${CMAKE_ARGS} -DBUILD_PLASMA_WIDGET=OFF"
 fi
 
+# Check rtcwake permission
+if ! rtcwake --version >/dev/null 2>&1; then
+  echo "rtcwake not found in PATH. Please install util-linux package."
+  exit 1
+fi
+
+if ! rtcwake -m no -s 60 >/dev/null 2>&1; then
+  echo "Warning: current user cannot run rtcwake without elevated privileges."
+  read -r -p "Re-run this installer with sudo? [y/N] " sudo_retry
+  if [[ ${sudo_retry:-N} =~ ^[Yy]$ ]]; then
+    exec sudo bash "$0"
+  fi
+fi
+
 cmake -S "${PROJECT_ROOT}" -B "${BUILD_DIR}" ${CMAKE_ARGS}
 cmake --build "${BUILD_DIR}"
 cmake --build "${BUILD_DIR}" --target rtcwake-configrepo-test rtcwake-scheduleplanner-test
