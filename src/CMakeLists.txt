@@ -5,6 +5,8 @@ set(SOURCES
     RtcWakeController.cpp
     PowerStateDetector.cpp
     WarningBanner.cpp
+    AppConfig.cpp
+    ConfigRepository.cpp
 )
 
 set(HEADERS
@@ -13,6 +15,8 @@ set(HEADERS
     ${CMAKE_SOURCE_DIR}/include/RtcWakeController.h
     ${CMAKE_SOURCE_DIR}/include/PowerStateDetector.h
     ${CMAKE_SOURCE_DIR}/include/WarningBanner.h
+    ${CMAKE_SOURCE_DIR}/include/AppConfig.h
+    ${CMAKE_SOURCE_DIR}/include/ConfigRepository.h
 )
 
 add_executable(rtcwake-gui

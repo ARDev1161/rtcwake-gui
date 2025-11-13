@@ -22,7 +22,6 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QRadioButton>
-#include <QSettings>
 #include <QSpinBox>
 #include <QTabWidget>
 #include <QTableWidget>
@@ -32,6 +31,7 @@
 #include <QVBoxLayout>
 #include <QStandardPaths>
 #include <QtGlobal>
+#include <algorithm>
 
 namespace {
 QString formatDateTime(const QDateTime &dt) {
@@ -233,64 +233,49 @@ void MainWindow::connectSignals() {
 }
 
 void MainWindow::loadSettings() {
-    QSettings settings(QStringLiteral("rtcwake-gui"), QStringLiteral("planner"));
+    m_config = m_configRepo.load();
 
-    settings.beginGroup(QStringLiteral("single"));
-    const QDate date = settings.value(QStringLiteral("date"), QDate::currentDate()).toDate();
-    const QTime time = settings.value(QStringLiteral("time"), QTime::currentTime()).toTime();
-    m_dateEdit->setDate(date);
-    m_timeEdit->setTime(time);
-    settings.endGroup();
+    m_dateEdit->setDate(m_config.singleDate);
+    m_timeEdit->setTime(m_config.singleTime);
 
-    settings.beginGroup(QStringLiteral("action"));
-    const int actionId = settings.value(QStringLiteral("selected"), static_cast<int>(PowerAction::SuspendToRam)).toInt();
-    if (auto *button = m_actionGroup->button(actionId)) {
+    if (auto *button = m_actionGroup->button(m_config.actionId)) {
         button->setChecked(true);
     }
-    settings.endGroup();
 
-    settings.beginGroup(QStringLiteral("warning"));
-    m_warningEnabled->setChecked(settings.value(QStringLiteral("enabled"), true).toBool());
-    m_warningMessage->setText(settings.value(QStringLiteral("message"), m_warningMessage->text()).toString());
-    m_warningCountdown->setValue(settings.value(QStringLiteral("countdown"), 30).toInt());
-    m_warningSnooze->setValue(settings.value(QStringLiteral("snooze"), 5).toInt());
-    settings.endGroup();
+    m_warningEnabled->setChecked(m_config.warning.enabled);
+    m_warningMessage->setText(m_config.warning.message);
+    m_warningCountdown->setValue(m_config.warning.countdownSeconds);
+    m_warningSnooze->setValue(m_config.warning.snoozeMinutes);
 
-    settings.beginGroup(QStringLiteral("weekly"));
     for (const auto &row : m_weeklyRows) {
-        const QString prefix = QStringLiteral("%1").arg(static_cast<int>(row.day));
-        row.enabled->setChecked(settings.value(prefix + QStringLiteral("_enabled"), false).toBool());
-        row.timeEdit->setTime(settings.value(prefix + QStringLiteral("_time"), QTime(7, 30)).toTime());
+        if (auto *entry = weeklyConfig(row.day)) {
+            row.enabled->setChecked(entry->enabled);
+            row.timeEdit->setTime(entry->time);
+        } else {
+            row.enabled->setChecked(false);
+            row.timeEdit->setTime(QTime(7, 30));
+        }
     }
-    settings.endGroup();
 }
 
-void MainWindow::saveSettings() const {
-    QSettings settings(QStringLiteral("rtcwake-gui"), QStringLiteral("planner"));
+void MainWindow::saveSettings() {
+    m_config.singleDate = m_dateEdit->date();
+    m_config.singleTime = m_timeEdit->time();
+    m_config.actionId = m_actionGroup->checkedId();
 
-    settings.beginGroup(QStringLiteral("single"));
-    settings.setValue(QStringLiteral("date"), m_dateEdit->date());
-    settings.setValue(QStringLiteral("time"), m_timeEdit->time());
-    settings.endGroup();
+    m_config.warning.enabled = m_warningEnabled->isChecked();
+    m_config.warning.message = m_warningMessage->text();
+    m_config.warning.countdownSeconds = m_warningCountdown->value();
+    m_config.warning.snoozeMinutes = m_warningSnooze->value();
 
-    settings.beginGroup(QStringLiteral("action"));
-    settings.setValue(QStringLiteral("selected"), m_actionGroup->checkedId());
-    settings.endGroup();
-
-    settings.beginGroup(QStringLiteral("warning"));
-    settings.setValue(QStringLiteral("enabled"), m_warningEnabled->isChecked());
-    settings.setValue(QStringLiteral("message"), m_warningMessage->text());
-    settings.setValue(QStringLiteral("countdown"), m_warningCountdown->value());
-    settings.setValue(QStringLiteral("snooze"), m_warningSnooze->value());
-    settings.endGroup();
-
-    settings.beginGroup(QStringLiteral("weekly"));
     for (const auto &row : m_weeklyRows) {
-        const QString prefix = QStringLiteral("%1").arg(static_cast<int>(row.day));
-        settings.setValue(prefix + QStringLiteral("_enabled"), row.enabled->isChecked());
-        settings.setValue(prefix + QStringLiteral("_time"), row.timeEdit->time());
+        if (auto *entry = weeklyConfig(row.day)) {
+            entry->enabled = row.enabled->isChecked();
+            entry->time = row.timeEdit->time();
+        }
     }
-    settings.endGroup();
+
+    m_configRepo.save(m_config);
 }
 
 PowerAction MainWindow::currentAction() const {
@@ -417,6 +402,19 @@ void MainWindow::scheduleRetry(int minutesDelay) {
 void MainWindow::appendLog(const QString &line) {
     const QString stamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
     m_log->appendPlainText(QStringLiteral("[%1] %2").arg(stamp, line));
+}
+
+WeeklyEntry *MainWindow::weeklyConfig(Qt::DayOfWeek day) {
+    auto it = std::find_if(m_config.weekly.begin(), m_config.weekly.end(), [day](const WeeklyEntry &entry) {
+        return entry.day == day;
+    });
+    if (it == m_config.weekly.end()) {
+        WeeklyEntry entry;
+        entry.day = day;
+        m_config.weekly.push_back(entry);
+        return &m_config.weekly.last();
+    }
+    return &(*it);
 }
 
 void MainWindow::persistSummary(const QDateTime &targetLocal, PowerAction action) const {

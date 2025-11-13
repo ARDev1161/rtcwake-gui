@@ -11,7 +11,7 @@
 - Optional warning banner with customizable message, countdown, and snooze interval.
 - Activity log with full command lines so you can copy/paste them into the terminal.
 - Optional Plasma widget (`org.kde.plasma.rtcwakeplanner`) that shows the next alarm and launches the planner.
-- JSON status exported to `~/.local/share/rtcwake-gui/next-wake.json` for integrations.
+- JSON status exported to `~/.local/share/rtcwake-gui/next-wake.json` for integrations, plus a persistent config at `~/.config/rtcwake-gui/config.json`.
 
 ## Requirements
 - Qt 5.12+ (Widgets, Core, Gui, optionally Quick for the Plasma package).
@@ -53,5 +53,6 @@ Enable Doxygen while configuring or run `cmake --build build --target doxygen_do
 - `rtcwake` needs elevated privileges on most systems; run the GUI under `sudo` or configure Polkit rules accordingly.
 - The weekly view schedules only the closest next occurrence. Re-open the app (or rely on automation) to re-arm future alarms.
 - Plasma integration is optional; non-Plasma users can ignore `BUILD_PLASMA_WIDGET`.
+- All scheduling preferences are stored in `~/.config/rtcwake-gui/config.json`. Remove or edit that file if you need to reset the UI.
 
 Enjoy and wake on time!

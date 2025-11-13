@@ -4,6 +4,7 @@
 - `src/` contains the Qt Widgets application entry point and implementation files.
 - `include/` mirrors the public headers; keep UI strings in English and prefer Qt-friendly types.
 - `plasma-widget/` is an optional plasmoid package installed via `BUILD_PLASMA_WIDGET`.
+- `~/.config/rtcwake-gui/config.json` (managed by `ConfigRepository`) keeps the persisted schedules.
 
 ## Build & Test
 1. Configure: `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release`

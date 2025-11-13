@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ConfigRepository.h"
 #include "PowerStateDetector.h"
 #include "RtcWakeController.h"
 #include "WarningBanner.h"
@@ -71,7 +72,7 @@ private:
     void connectSignals();
 
     void loadSettings();
-    void saveSettings() const;
+    void saveSettings();
 
     PowerAction currentAction() const;
     WarningConfig currentWarning() const;
@@ -83,6 +84,7 @@ private:
     void persistSummary(const QDateTime &targetLocal, PowerAction action) const;
 
     void appendLog(const QString &line);
+    WeeklyEntry *weeklyConfig(Qt::DayOfWeek day);
 
     QDateEdit *m_dateEdit {nullptr};
     QTimeEdit *m_timeEdit {nullptr};
@@ -103,4 +105,6 @@ private:
 
     RtcWakeController *m_controller {nullptr};
     std::optional<PendingSchedule> m_postponed;
+    ConfigRepository m_configRepo;
+    AppConfig m_config;
 };
