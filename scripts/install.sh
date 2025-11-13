@@ -36,23 +36,6 @@ if ! command -v rtcwake >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! sudo -u "${TARGET_USER}" rtcwake -m no -s 60 >/dev/null 2>&1; then
-  echo "Warning: user ${TARGET_USER} cannot run rtcwake without elevated privileges."
-  RTCWAKE_BIN=$(command -v rtcwake)
-  read -r -p "Grant rtcwake capability via 'setcap cap_sys_time+ep ${RTCWAKE_BIN}'? [Y/n] " cap_reply
-  if [[ ${cap_reply:-Y} =~ ^[Yy]$ ]]; then
-    setcap cap_sys_time+ep "${RTCWAKE_BIN}" || true
-  else
-    echo "Cannot proceed without rtcwake permissions. Aborting."
-    exit 1
-  fi
-
-  if ! sudo -u "${TARGET_USER}" rtcwake -m no -s 60 >/dev/null 2>&1; then
-    echo "rtcwake is still not usable without permissions. Aborting."
-    exit 1
-  fi
-fi
-
 cmake -S "${PROJECT_ROOT}" -B "${BUILD_DIR}" ${CMAKE_ARGS}
 cmake --build "${BUILD_DIR}"
 cmake --build "${BUILD_DIR}" --target rtcwake-configrepo-test rtcwake-scheduleplanner-test

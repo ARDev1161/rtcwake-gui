@@ -23,7 +23,7 @@ The fastest way to install and start the daemon is via the helper script:
 ```bash
 sudo ./scripts/install.sh
 ```
-It configures the project in Release mode (asking whether to include the optional Plasma widget), checks/patches your `rtcwake` permissions (offering to call `setcap` so non-root apps can use it), builds the GUI + daemon + tests, runs `ctest`, installs binaries into `/usr/local/bin`, installs a launcher entry + icon automatically, optionally adds a desktop shortcut for the invoking user, installs a system-wide `rtcwake-daemon` service, and offers to enable that service immediately. Remove everything later via:
+It configures the project in Release mode (asking whether to include the optional Plasma widget), builds the GUI + daemon + tests, runs `ctest`, installs binaries into `/usr/local/bin`, installs a launcher entry + icon automatically, optionally adds a desktop shortcut for the invoking user, installs a system-wide `rtcwake-daemon` service, and offers to enable that service immediately. Remove everything later via:
 ```bash
 sudo ./scripts/uninstall.sh
 ```
