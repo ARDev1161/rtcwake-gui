@@ -38,13 +38,18 @@ if ! rtcwake -m no -s 60 >/dev/null 2>&1; then
     read -r -p "Grant rtcwake capability via 'sudo setcap cap_sys_time+ep ${RTCWAKE_BIN}'? [Y/n] " cap_reply
     if [[ ${cap_reply:-Y} =~ ^[Yy]$ ]]; then
       sudo setcap cap_sys_time+ep "${RTCWAKE_BIN}" || true
+    else
+      echo "Cannot proceed without rtcwake permissions. Aborting."
+      exit 1
     fi
   else
-    echo "Install sudo or configure Polkit so rtcwake can run without a password."
+    echo "sudo not available and rtcwake requires elevated permissions. Aborting."
+    exit 1
   fi
 
   if ! rtcwake -m no -s 60 >/dev/null 2>&1; then
-    echo "rtcwake is still not usable without privileges. The GUI and daemon may fail until you configure access."
+    echo "rtcwake is still not usable without permissions. Aborting."
+    exit 1
   fi
 fi
 
