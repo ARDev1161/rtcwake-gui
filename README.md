@@ -1,8 +1,6 @@
 # rtcwake-gui
 
-**ru:** Графический планировщик для `rtcwake`, позволяющий выставлять разовые и недельные будильники, выбирать способ завершения работы и показывать предупреждающий баннер с таймером и кнопками "Применить" / "Отложить".
-
-**en:** Friendly Qt5 desktop app that helps you arm `rtcwake`, pick the shutdown/suspend strategy, and review the next alarm from a Plasma widget.
+Friendly Qt5 desktop app that helps you arm `rtcwake`, pick the shutdown/suspend strategy, and review the next alarm from a Plasma widget.
 
 ## Highlights
 - Dual time input: classic `QTimeEdit` field plus an analog clock preview.
@@ -25,6 +23,8 @@
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
+
+Prefer automation? Run `./scripts/install.sh` to configure the project, build all targets (UI + daemon + tests), execute `ctest`, install binaries into `~/.local/bin`, deploy the user service unit, and optionally enable the daemon immediately.
 
 Options:
 - `-DBUILD_PLASMA_WIDGET=ON` — installable Plasma widget (requires KF5Plasma + QtQuick).
