@@ -2,11 +2,17 @@ set(SOURCES
     main.cpp
     MainWindow.cpp
     AnalogClockWidget.cpp
+    RtcWakeController.cpp
+    PowerStateDetector.cpp
+    WarningBanner.cpp
 )
 
 set(HEADERS
     ${CMAKE_SOURCE_DIR}/include/MainWindow.h
     ${CMAKE_SOURCE_DIR}/include/AnalogClockWidget.h
+    ${CMAKE_SOURCE_DIR}/include/RtcWakeController.h
+    ${CMAKE_SOURCE_DIR}/include/PowerStateDetector.h
+    ${CMAKE_SOURCE_DIR}/include/WarningBanner.h
 )
 
 add_executable(rtcwake-gui

@@ -1,0 +1,19 @@
+{
+    "KPlugin": {
+        "Id": "org.kde.plasma.rtcwakeplanner",
+        "Name": "rtcwake Planner",
+        "Description": "Quick access to the rtcwake planner application",
+        "Icon": "clock",
+        "License": "GPL-3.0-or-later",
+        "Version": "0.1",
+        "Website": "https://github.com/example/rtcwake-gui"
+    },
+    "X-KDE-PluginInfo-Author": "rtcwake-gui",
+    "X-KDE-PluginInfo-Email": "noreply@example.com",
+    "X-KDE-PluginInfo-Name": "org.kde.plasma.rtcwakeplanner",
+    "X-KDE-PluginInfo-Version": "0.1",
+    "X-KDE-PluginInfo-Website": "https://github.com/example/rtcwake-gui",
+    "X-Plasma-API": "declarativeappletscript",
+    "X-Plasma-MainScript": "ui/main.qml",
+    "KPackageStructure": "Plasma/Applet"
+}
