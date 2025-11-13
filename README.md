@@ -18,13 +18,18 @@ Friendly Qt5 desktop app that helps you arm `rtcwake`, pick the shutdown/suspend
 - `rtcwake` and sufficient privileges (usually root via `sudo` or `polkit`).
 - Optional: KDE Plasma 5.24+ for the plasmoid, Doxygen for docs generation.
 
-## Building
+## Usage
+The fastest way to install and start the daemon is via the helper script:
+```bash
+./scripts/install.sh
+```
+It configures the project in Release mode, builds the GUI + daemon + tests, runs `ctest`, installs binaries into `~/.local/bin`, copies the systemd user unit, and offers to enable the daemon right away.
+
+## Manual build
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
-
-Prefer automation? Run `./scripts/install.sh` to configure the project, build all targets (UI + daemon + tests), execute `ctest`, install binaries into `~/.local/bin`, deploy the user service unit, and optionally enable the daemon immediately.
 
 Options:
 - `-DBUILD_PLASMA_WIDGET=ON` — installable Plasma widget (requires KF5Plasma + QtQuick).
@@ -33,7 +38,7 @@ Options:
 
 Run the application from `build/src/rtcwake-gui` (must have permission to call `rtcwake`).
 
-## Usage
+## Planner usage
 1. **Single Wake tab** — pick date + time, verify on the analog clock, and hit *Schedule wake*.
 2. **Weekly Schedule tab** — enable any subset of weekdays and assign times. Press *Schedule next weekly wake* to arm the closest upcoming entry.
 3. **Settings tab** — select the power action that should run after programming the RTC and configure the optional warning banner (message, countdown seconds, snooze minutes).
