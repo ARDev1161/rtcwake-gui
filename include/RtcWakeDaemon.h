@@ -7,33 +7,55 @@
 #include <QDateTime>
 #include <QFileSystemWatcher>
 #include <QObject>
+#include <QProcess>
 #include <QTimer>
 
-/**
- * @brief Background worker that keeps the RTC alarm armed according to AppConfig.
- */
 class RtcWakeDaemon : public QObject {
     Q_OBJECT
 
 public:
-    explicit RtcWakeDaemon(QObject *parent = nullptr);
+    struct Options {
+        QString configPath;
+        QString targetUser;
+        QString targetHome;
+        QString warningApp;
+    };
+
+    explicit RtcWakeDaemon(Options options, QObject *parent = nullptr);
 
     void start();
 
 private slots:
     void handleConfigChanged();
     void handlePeriodic();
+    void handleEventTimeout();
 
 private:
     void watchConfig();
     void reloadConfig();
-    void planNext();
+    void planNext(const QString &reason = QString());
+    void scheduleEventTimer(const QDateTime &shutdown, PowerAction action);
+    void cancelEventTimer();
+    void programAlarm(const QDateTime &wake, PowerAction action);
     void log(const QString &message) const;
+
+    enum class WarningOutcome {
+        Apply,
+        Snooze,
+        Cancel
+    };
+
+    WarningOutcome invokeWarning(const QDateTime &shutdown, PowerAction action);
+    QProcessEnvironment buildUserEnvironment() const;
 
     ConfigRepository m_repo;
     AppConfig m_config;
-    RtcWakeController m_controller;
+    Options m_options;
     QFileSystemWatcher m_watcher;
     QTimer m_periodic;
-    QDateTime m_lastArmed;
+    QTimer m_eventTimer;
+    QDateTime m_nextShutdown;
+    QDateTime m_nextWake;
+    PowerAction m_nextAction {PowerAction::None};
+    RtcWakeController m_controller;
 };

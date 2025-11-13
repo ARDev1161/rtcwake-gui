@@ -18,9 +18,25 @@ QString formatTime(const QTime &time) {
 }
 }
 
+ConfigRepository::ConfigRepository() = default;
+
+ConfigRepository::ConfigRepository(QString explicitPath)
+    : m_explicitPath(std::move(explicitPath)) {}
+
+QString ConfigRepository::resolvedPath() const {
+    if (!m_explicitPath.isEmpty()) {
+        return m_explicitPath;
+    }
+    QString base = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
+    if (base.isEmpty()) {
+        base = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) + QStringLiteral("/.config");
+    }
+    return base + QStringLiteral("/rtcwake-gui/config.json");
+}
+
 AppConfig ConfigRepository::load() const {
     AppConfig config;
-    QFile file(configPath());
+    QFile file(resolvedPath());
     if (!file.exists() || !file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return config;
     }
@@ -34,7 +50,7 @@ AppConfig ConfigRepository::load() const {
 }
 
 bool ConfigRepository::save(const AppConfig &config) const {
-    const QString path = configPath();
+    const QString path = resolvedPath();
     QFile file(path);
     QDir dir = QFileInfo(path).absoluteDir();
     if (!dir.exists() && !QDir().mkpath(dir.absolutePath())) {
@@ -54,11 +70,7 @@ bool ConfigRepository::save(const AppConfig &config) const {
 }
 
 QString ConfigRepository::configPath() const {
-    QString base = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
-    if (base.isEmpty()) {
-        base = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) + QStringLiteral("/.config");
-    }
-    return base + QStringLiteral("/rtcwake-gui/config.json");
+    return resolvedPath();
 }
 
 AppConfig ConfigRepository::parse(const QByteArray &json) const {
@@ -70,13 +82,21 @@ AppConfig ConfigRepository::parse(const QByteArray &json) const {
     }
 
     const QJsonObject root = doc.object();
-    const auto singleDate = QDate::fromString(root.value(QStringLiteral("singleDate")).toString(), Qt::ISODate);
-    const auto singleTime = QTime::fromString(root.value(QStringLiteral("singleTime")).toString(), Qt::ISODate);
-    if (singleDate.isValid()) {
-        config.singleDate = singleDate;
+    const auto singleShutdownDate = QDate::fromString(root.value(QStringLiteral("singleShutdownDate")).toString(), Qt::ISODate);
+    const auto singleShutdownTime = QTime::fromString(root.value(QStringLiteral("singleShutdownTime")).toString(), Qt::ISODate);
+    const auto singleWakeDate = QDate::fromString(root.value(QStringLiteral("singleDate")).toString(), Qt::ISODate);
+    const auto singleWakeTime = QTime::fromString(root.value(QStringLiteral("singleTime")).toString(), Qt::ISODate);
+    if (singleShutdownDate.isValid()) {
+        config.singleShutdownDate = singleShutdownDate;
     }
-    if (singleTime.isValid()) {
-        config.singleTime = singleTime;
+    if (singleShutdownTime.isValid()) {
+        config.singleShutdownTime = singleShutdownTime;
+    }
+    if (singleWakeDate.isValid()) {
+        config.singleWakeDate = singleWakeDate;
+    }
+    if (singleWakeTime.isValid()) {
+        config.singleWakeTime = singleWakeTime;
     }
 
     config.actionId = root.value(QStringLiteral("actionId")).toInt(config.actionId);
@@ -100,10 +120,20 @@ AppConfig ConfigRepository::parse(const QByteArray &json) const {
         WeeklyEntry entry;
         entry.day = static_cast<Qt::DayOfWeek>(day);
         entry.enabled = obj.value(QStringLiteral("enabled")).toBool(false);
-        const QString timeStr = obj.value(QStringLiteral("time")).toString();
-        const auto parsedTime = QTime::fromString(timeStr, QStringLiteral("HH:mm"));
-        if (parsedTime.isValid()) {
-            entry.time = parsedTime;
+        const QString shutdownStr = obj.value(QStringLiteral("shutdownTime")).toString();
+        const auto parsedShutdown = QTime::fromString(shutdownStr, QStringLiteral("HH:mm"));
+        if (parsedShutdown.isValid()) {
+            entry.shutdownTime = parsedShutdown;
+        }
+
+        QString wakeKey = QStringLiteral("wakeTime");
+        QString wakeStr = obj.value(wakeKey).toString();
+        if (wakeStr.isEmpty()) {
+            wakeStr = obj.value(QStringLiteral("time")).toString();
+        }
+        const auto parsedWake = QTime::fromString(wakeStr, QStringLiteral("HH:mm"));
+        if (parsedWake.isValid()) {
+            entry.wakeTime = parsedWake;
         }
         overrides.insert(day, entry);
     }
@@ -115,13 +145,23 @@ AppConfig ConfigRepository::parse(const QByteArray &json) const {
         }
     }
 
+    const auto sessionObj = root.value(QStringLiteral("session")).toObject();
+    if (!sessionObj.isEmpty()) {
+        config.session.user = sessionObj.value(QStringLiteral("user")).toString(config.session.user);
+        config.session.display = sessionObj.value(QStringLiteral("display")).toString(config.session.display);
+        config.session.xdgRuntimeDir = sessionObj.value(QStringLiteral("xdgRuntimeDir")).toString(config.session.xdgRuntimeDir);
+        config.session.dbusAddress = sessionObj.value(QStringLiteral("dbusAddress")).toString(config.session.dbusAddress);
+    }
+
     return config;
 }
 
 QByteArray ConfigRepository::serialize(const AppConfig &config) const {
     QJsonObject root;
-    root.insert(QStringLiteral("singleDate"), config.singleDate.toString(Qt::ISODate));
-    root.insert(QStringLiteral("singleTime"), config.singleTime.toString(Qt::ISODate));
+    root.insert(QStringLiteral("singleShutdownDate"), config.singleShutdownDate.toString(Qt::ISODate));
+    root.insert(QStringLiteral("singleShutdownTime"), config.singleShutdownTime.toString(Qt::ISODate));
+    root.insert(QStringLiteral("singleDate"), config.singleWakeDate.toString(Qt::ISODate));
+    root.insert(QStringLiteral("singleTime"), config.singleWakeTime.toString(Qt::ISODate));
     root.insert(QStringLiteral("actionId"), config.actionId);
 
     QJsonObject warningObj;
@@ -136,10 +176,18 @@ QByteArray ConfigRepository::serialize(const AppConfig &config) const {
         QJsonObject obj;
         obj.insert(QStringLiteral("day"), static_cast<int>(entry.day));
         obj.insert(QStringLiteral("enabled"), entry.enabled);
-        obj.insert(QStringLiteral("time"), formatTime(entry.time));
+        obj.insert(QStringLiteral("shutdownTime"), formatTime(entry.shutdownTime));
+        obj.insert(QStringLiteral("wakeTime"), formatTime(entry.wakeTime));
         weeklyArray.append(obj);
     }
     root.insert(QStringLiteral("weekly"), weeklyArray);
+
+    QJsonObject sessionObj;
+    sessionObj.insert(QStringLiteral("user"), config.session.user);
+    sessionObj.insert(QStringLiteral("display"), config.session.display);
+    sessionObj.insert(QStringLiteral("xdgRuntimeDir"), config.session.xdgRuntimeDir);
+    sessionObj.insert(QStringLiteral("dbusAddress"), config.session.dbusAddress);
+    root.insert(QStringLiteral("session"), sessionObj);
 
     QJsonDocument doc(root);
     return doc.toJson(QJsonDocument::Compact);

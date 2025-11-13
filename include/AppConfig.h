@@ -19,16 +19,28 @@ struct WarningPreferences {
 struct WeeklyEntry {
     Qt::DayOfWeek day {Qt::Monday};
     bool enabled {false};
-    QTime time {QTime(7, 30)};
+    QTime shutdownTime {QTime(23, 0)};
+    QTime wakeTime {QTime(7, 30)};
+};
+
+/** Details about the user's graphical session so the daemon can show banners. */
+struct SessionInfo {
+    QString user;
+    QString display;
+    QString xdgRuntimeDir;
+    QString dbusAddress;
 };
 
 /** Aggregate structure storing everything we persist between runs. */
 struct AppConfig {
     AppConfig();
 
-    QDate singleDate {QDate::currentDate()};
-    QTime singleTime {QTime::currentTime()};
+    QDate singleShutdownDate {QDate::currentDate()};
+    QTime singleShutdownTime {QTime::currentTime()};
+    QDate singleWakeDate {QDate::currentDate()};
+    QTime singleWakeTime {QTime::currentTime()};
     int actionId {static_cast<int>(PowerAction::SuspendToRam)};
     WarningPreferences warning;
     QVector<WeeklyEntry> weekly;
+    SessionInfo session;
 };

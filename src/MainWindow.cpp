@@ -1,12 +1,12 @@
 #include "MainWindow.h"
 
 #include "AnalogClockWidget.h"
-#include "SummaryWriter.h"
 
 #include <QButtonGroup>
 #include <QCheckBox>
 #include <QCloseEvent>
 #include <QDateEdit>
+#include <QDateTime>
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHeaderView>
@@ -23,10 +23,7 @@
 #include <QTabWidget>
 #include <QTableWidget>
 #include <QTimeEdit>
-#include <QTimeZone>
-#include <QTimer>
 #include <QVBoxLayout>
-#include <QtGlobal>
 #include <algorithm>
 
 namespace {
@@ -34,33 +31,36 @@ QString formatDateTime(const QDateTime &dt) {
     QLocale locale;
     return locale.toString(dt, QLocale::LongFormat);
 }
+
+QString currentUser() {
+    const QByteArray user = qgetenv("USER");
+    if (!user.isEmpty()) {
+        return QString::fromLocal8Bit(user);
+    }
+    return QStringLiteral("unknown");
+}
 }
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), m_controller(new RtcWakeController(this)) {
+    : QMainWindow(parent) {
     buildUi();
     connectSignals();
     loadSettings();
-    m_clockWidget->setTime(m_timeEdit->time());
+
     setWindowIcon(QIcon(QStringLiteral(":/rtcwake/icons/clock.svg")));
     setWindowTitle(tr("rtcwake planner"));
 }
 
-void MainWindow::closeEvent(QCloseEvent *event) {
-    saveSettings();
-    QMainWindow::closeEvent(event);
-}
-
 void MainWindow::buildUi() {
     auto *tabs = new QTabWidget(this);
-    tabs->addTab(buildSingleTab(), tr("Single wake"));
+    tabs->addTab(buildSingleTab(), tr("Single schedule"));
     tabs->addTab(buildWeeklyTab(), tr("Weekly schedule"));
     tabs->addTab(buildSettingsTab(), tr("Settings"));
 
     m_log = new QPlainTextEdit(this);
     m_log->setReadOnly(true);
 
-    m_nextSummary = new QLabel(tr("No wake scheduled yet."), this);
+    m_nextSummary = new QLabel(tr("Configuration not saved yet."), this);
 
     auto *central = new QWidget(this);
     auto *layout = new QVBoxLayout(central);
@@ -69,40 +69,51 @@ void MainWindow::buildUi() {
     layout->addWidget(new QLabel(tr("Activity log:"), this));
     layout->addWidget(m_log, 1);
     setCentralWidget(central);
-    resize(900, 720);
+    resize(960, 720);
 }
 
 QWidget *MainWindow::buildSingleTab() {
     auto *tab = new QWidget(this);
     auto *layout = new QVBoxLayout(tab);
 
-    auto *timeBox = new QGroupBox(tr("Wake time"), tab);
-    auto *timeLayout = new QGridLayout(timeBox);
+    auto *shutdownBox = new QGroupBox(tr("Shutdown time"), tab);
+    auto *shutdownLayout = new QGridLayout(shutdownBox);
+    m_shutdownDateEdit = new QDateEdit(QDate::currentDate(), shutdownBox);
+    m_shutdownDateEdit->setCalendarPopup(true);
+    m_shutdownTimeEdit = new QTimeEdit(QTime::currentTime(), shutdownBox);
+    m_shutdownTimeEdit->setDisplayFormat(QStringLiteral("HH:mm"));
 
-    m_dateEdit = new QDateEdit(QDate::currentDate(), timeBox);
+    shutdownLayout->addWidget(new QLabel(tr("Date:"), shutdownBox), 0, 0);
+    shutdownLayout->addWidget(m_shutdownDateEdit, 0, 1);
+    shutdownLayout->addWidget(new QLabel(tr("Time:"), shutdownBox), 1, 0);
+    shutdownLayout->addWidget(m_shutdownTimeEdit, 1, 1);
+    layout->addWidget(shutdownBox);
+
+    auto *wakeBox = new QGroupBox(tr("Wake time"), tab);
+    auto *wakeLayout = new QGridLayout(wakeBox);
+    m_dateEdit = new QDateEdit(QDate::currentDate(), wakeBox);
     m_dateEdit->setCalendarPopup(true);
-
-    m_timeEdit = new QTimeEdit(QTime::currentTime().addSecs(900), timeBox);
+    m_timeEdit = new QTimeEdit(QTime::currentTime().addSecs(3600), wakeBox);
     m_timeEdit->setDisplayFormat(QStringLiteral("HH:mm"));
     m_timeEdit->setMinimumWidth(120);
 
-    timeLayout->addWidget(new QLabel(tr("Date:"), timeBox), 0, 0);
-    timeLayout->addWidget(m_dateEdit, 0, 1);
-    timeLayout->addWidget(new QLabel(tr("Time:"), timeBox), 1, 0);
-    timeLayout->addWidget(m_timeEdit, 1, 1);
+    wakeLayout->addWidget(new QLabel(tr("Date:"), wakeBox), 0, 0);
+    wakeLayout->addWidget(m_dateEdit, 0, 1);
+    wakeLayout->addWidget(new QLabel(tr("Time:"), wakeBox), 1, 0);
+    wakeLayout->addWidget(m_timeEdit, 1, 1);
 
-    m_clockWidget = new AnalogClockWidget(timeBox);
-    timeLayout->addWidget(m_clockWidget, 0, 2, 2, 1);
+    m_clockWidget = new AnalogClockWidget(wakeBox);
+    wakeLayout->addWidget(m_clockWidget, 0, 2, 2, 1);
 
-    layout->addWidget(timeBox);
+    layout->addWidget(wakeBox);
 
     auto *buttonRow = new QHBoxLayout();
     buttonRow->addStretch();
-    auto *scheduleButton = new QPushButton(tr("Schedule wake"), tab);
-    buttonRow->addWidget(scheduleButton);
+    auto *saveButton = new QPushButton(tr("Save single schedule"), tab);
+    buttonRow->addWidget(saveButton);
     layout->addLayout(buttonRow);
 
-    connect(scheduleButton, &QPushButton::clicked, this, &MainWindow::scheduleSingleWake);
+    connect(saveButton, &QPushButton::clicked, this, &MainWindow::scheduleSingleWake);
 
     return tab;
 }
@@ -111,11 +122,12 @@ QWidget *MainWindow::buildWeeklyTab() {
     auto *tab = new QWidget(this);
     auto *layout = new QVBoxLayout(tab);
 
-    m_scheduleTable = new QTableWidget(7, 3, tab);
-    m_scheduleTable->setHorizontalHeaderLabels({tr("Enabled"), tr("Day"), tr("Time")});
+    m_scheduleTable = new QTableWidget(7, 4, tab);
+    m_scheduleTable->setHorizontalHeaderLabels({tr("Enabled"), tr("Day"), tr("Shutdown"), tr("Wake")});
     m_scheduleTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     m_scheduleTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
     m_scheduleTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    m_scheduleTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
     m_scheduleTable->verticalHeader()->setVisible(false);
 
     const QList<Qt::DayOfWeek> days {
@@ -128,27 +140,29 @@ QWidget *MainWindow::buildWeeklyTab() {
     for (int row = 0; row < days.size(); ++row) {
         auto day = days.at(row);
         auto *enabled = new QCheckBox(tab);
-        auto *timeEdit = new QTimeEdit(QTime(7, 30), tab);
-        timeEdit->setDisplayFormat(QStringLiteral("HH:mm"));
+        auto *shutdownEdit = new QTimeEdit(QTime(23, 0), tab);
+        shutdownEdit->setDisplayFormat(QStringLiteral("HH:mm"));
+        auto *wakeEdit = new QTimeEdit(QTime(7, 30), tab);
+        wakeEdit->setDisplayFormat(QStringLiteral("HH:mm"));
 
         auto *dayItem = new QTableWidgetItem(locale.dayName(day));
         dayItem->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
 
         m_scheduleTable->setCellWidget(row, 0, enabled);
         m_scheduleTable->setItem(row, 1, dayItem);
-        m_scheduleTable->setCellWidget(row, 2, timeEdit);
+        m_scheduleTable->setCellWidget(row, 2, shutdownEdit);
+        m_scheduleTable->setCellWidget(row, 3, wakeEdit);
 
-        m_weeklyRows.push_back({day, enabled, timeEdit});
+        m_weeklyRows.push_back({day, enabled, shutdownEdit, wakeEdit});
     }
 
     layout->addWidget(m_scheduleTable);
 
-    auto *hint = new QLabel(tr("Select multiple days to build a weekly alarm. "
-                               "The nearest future occurrence will be scheduled."), tab);
+    auto *hint = new QLabel(tr("Enable the days you want to automate. Shutdown happens at the configured time, and the daemon programs rtcwake for the wake time."), tab);
     hint->setWordWrap(true);
     layout->addWidget(hint);
 
-    auto *button = new QPushButton(tr("Schedule next weekly wake"), tab);
+    auto *button = new QPushButton(tr("Save weekly schedule"), tab);
     layout->addWidget(button, 0, Qt::AlignRight);
 
     connect(button, &QPushButton::clicked, this, &MainWindow::scheduleNextFromWeekly);
@@ -216,23 +230,26 @@ void MainWindow::populateActionGroup(QVBoxLayout *layout) {
 
 void MainWindow::connectSignals() {
     connect(m_timeEdit, &QTimeEdit::timeChanged, this, [this](const QTime &time) {
-        m_clockWidget->setTime(time);
+        if (m_clockWidget) {
+            m_clockWidget->setTime(time);
+        }
     });
-
-    auto updateWarningUi = [this](bool enabled) {
-        m_warningMessage->setEnabled(enabled);
-        m_warningCountdown->setEnabled(enabled);
-        m_warningSnooze->setEnabled(enabled);
-    };
-    connect(m_warningEnabled, &QCheckBox::toggled, this, updateWarningUi);
-    updateWarningUi(m_warningEnabled->isChecked());
 }
 
 void MainWindow::loadSettings() {
     m_config = m_configRepo.load();
+    applyConfigToUi();
+    m_nextSummary->setText(tr("Config loaded for %1").arg(currentUser()));
+}
 
-    m_dateEdit->setDate(m_config.singleDate);
-    m_timeEdit->setTime(m_config.singleTime);
+void MainWindow::applyConfigToUi() {
+    m_shutdownDateEdit->setDate(m_config.singleShutdownDate);
+    m_shutdownTimeEdit->setTime(m_config.singleShutdownTime);
+    m_dateEdit->setDate(m_config.singleWakeDate);
+    m_timeEdit->setTime(m_config.singleWakeTime);
+    if (m_clockWidget) {
+        m_clockWidget->setTime(m_timeEdit->time());
+    }
 
     if (auto *button = m_actionGroup->button(m_config.actionId)) {
         button->setChecked(true);
@@ -243,21 +260,24 @@ void MainWindow::loadSettings() {
     m_warningCountdown->setValue(m_config.warning.countdownSeconds);
     m_warningSnooze->setValue(m_config.warning.snoozeMinutes);
 
-    for (const auto &row : m_weeklyRows) {
+    for (auto &row : m_weeklyRows) {
         if (auto *entry = weeklyConfig(row.day)) {
             row.enabled->setChecked(entry->enabled);
-            row.timeEdit->setTime(entry->time);
+            row.shutdownEdit->setTime(entry->shutdownTime);
+            row.wakeEdit->setTime(entry->wakeTime);
         } else {
             row.enabled->setChecked(false);
-            row.timeEdit->setTime(QTime(7, 30));
         }
     }
 }
 
-void MainWindow::saveSettings() {
-    m_config.singleDate = m_dateEdit->date();
-    m_config.singleTime = m_timeEdit->time();
-    m_config.actionId = m_actionGroup->checkedId();
+void MainWindow::collectUiIntoConfig() {
+    m_config.singleShutdownDate = m_shutdownDateEdit->date();
+    m_config.singleShutdownTime = m_shutdownTimeEdit->time();
+    m_config.singleWakeDate = m_dateEdit->date();
+    m_config.singleWakeTime = m_timeEdit->time();
+    m_config.actionId = currentAction() == PowerAction::None ? static_cast<int>(PowerAction::SuspendToRam)
+                                                             : static_cast<int>(currentAction());
 
     m_config.warning.enabled = m_warningEnabled->isChecked();
     m_config.warning.message = m_warningMessage->text();
@@ -267,11 +287,56 @@ void MainWindow::saveSettings() {
     for (const auto &row : m_weeklyRows) {
         if (auto *entry = weeklyConfig(row.day)) {
             entry->enabled = row.enabled->isChecked();
-            entry->time = row.timeEdit->time();
+            entry->shutdownTime = row.shutdownEdit->time();
+            entry->wakeTime = row.wakeEdit->time();
         }
     }
 
-    m_configRepo.save(m_config);
+    m_config.session.user = currentUser();
+    m_config.session.display = qEnvironmentVariable("DISPLAY");
+    m_config.session.xdgRuntimeDir = qEnvironmentVariable("XDG_RUNTIME_DIR");
+    m_config.session.dbusAddress = qEnvironmentVariable("DBUS_SESSION_BUS_ADDRESS");
+}
+
+void MainWindow::saveSettings(const QString &reason) {
+    collectUiIntoConfig();
+    if (!m_configRepo.save(m_config)) {
+        QMessageBox::critical(this, tr("Save error"), tr("Failed to write configuration file."));
+        return;
+    }
+
+    const QString stamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
+    m_nextSummary->setText(tr("Saved at %1").arg(stamp));
+    appendLog(reason.isEmpty() ? tr("Configuration updated.") : reason);
+}
+
+void MainWindow::scheduleSingleWake() {
+    const QDateTime shutdown(m_shutdownDateEdit->date(), m_shutdownTimeEdit->time());
+    const QDateTime wake(m_dateEdit->date(), m_timeEdit->time());
+    if (!shutdown.isValid() || !wake.isValid()) {
+        QMessageBox::warning(this, tr("Invalid time"), tr("Please select valid shutdown and wake times."));
+        return;
+    }
+    if (shutdown >= wake) {
+        QMessageBox::warning(this, tr("Invalid ordering"), tr("Shutdown time must be before wake time."));
+        return;
+    }
+    saveSettings(tr("Single schedule saved."));
+}
+
+void MainWindow::scheduleNextFromWeekly() {
+    bool anyEnabled = false;
+    for (const auto &row : m_weeklyRows) {
+        if (row.enabled->isChecked()) {
+            anyEnabled = true;
+            break;
+        }
+    }
+    if (!anyEnabled) {
+        QMessageBox::information(this, tr("No days enabled"), tr("Enable at least one weekday."));
+        return;
+    }
+    saveSettings(tr("Weekly schedule saved."));
 }
 
 PowerAction MainWindow::currentAction() const {
@@ -280,119 +345,6 @@ PowerAction MainWindow::currentAction() const {
         return PowerAction::None;
     }
     return static_cast<PowerAction>(id);
-}
-
-MainWindow::WarningConfig MainWindow::currentWarning() const {
-    WarningConfig config;
-    config.enabled = m_warningEnabled->isChecked();
-    config.message = m_warningMessage->text();
-    config.countdownSeconds = m_warningCountdown->value();
-    config.snoozeMinutes = m_warningSnooze->value();
-    return config;
-}
-
-void MainWindow::scheduleSingleWake() {
-    const QDate date = m_dateEdit->date();
-    const QTime time = m_timeEdit->time();
-    QDateTime target(date, time, QTimeZone::systemTimeZone());
-
-    handleScheduleRequest(target, currentAction(), ScheduleOrigin::Single);
-}
-
-void MainWindow::scheduleNextFromWeekly() {
-    QDateTime best;
-    bool hasCandidate = false;
-    const QDateTime now = QDateTime::currentDateTime();
-
-    for (const auto &row : m_weeklyRows) {
-        if (!row.enabled->isChecked()) {
-            continue;
-        }
-        QDate candidateDate = now.date();
-        int offset = static_cast<int>(row.day) - now.date().dayOfWeek();
-        if (offset < 0) {
-            offset += 7;
-        }
-        candidateDate = candidateDate.addDays(offset);
-        QDateTime candidate(candidateDate, row.timeEdit->time(), now.timeZone());
-        if (candidate <= now) {
-            candidate = candidate.addDays(7);
-        }
-        if (!hasCandidate || candidate < best) {
-            best = candidate;
-            hasCandidate = true;
-        }
-    }
-
-    if (!hasCandidate) {
-        QMessageBox::information(this, tr("No schedule"), tr("Enable at least one weekday."));
-        return;
-    }
-
-    handleScheduleRequest(best, currentAction(), ScheduleOrigin::Weekly);
-}
-
-void MainWindow::handleScheduleRequest(const QDateTime &targetLocal, PowerAction action, ScheduleOrigin origin) {
-    const QDateTime now = QDateTime::currentDateTime();
-    if (!targetLocal.isValid() || targetLocal <= now) {
-        QMessageBox::warning(this, tr("Invalid time"), tr("Choose a future date and time."));
-        return;
-    }
-
-    const QString originLabel = (origin == ScheduleOrigin::Single)
-        ? tr("single entry")
-        : tr("weekly plan");
-
-    auto proceed = [this, targetLocal, action, originLabel]() {
-        m_postponed.reset();
-        auto result = m_controller->scheduleWake(targetLocal.toUTC(), action);
-        if (result.success) {
-            appendLog(tr("Scheduled %1 via %2 (%3)")
-                          .arg(formatDateTime(targetLocal))
-                          .arg(result.commandLine)
-                          .arg(originLabel));
-            m_nextSummary->setText(tr("Wake at %1 (%2)")
-                                       .arg(formatDateTime(targetLocal))
-                                       .arg(RtcWakeController::actionLabel(action)));
-            SummaryWriter::write(targetLocal, action);
-        } else {
-            appendLog(tr("Scheduling failed: %1").arg(result.stdErr));
-            QMessageBox::critical(this, tr("rtcwake error"),
-                                  tr("Command failed:\n%1\n%2").arg(result.commandLine, result.stdErr));
-        }
-    };
-
-    const auto warning = currentWarning();
-    if (action != PowerAction::None && warning.enabled) {
-        WarningBanner banner(warning.message, warning.countdownSeconds, this);
-        const auto choice = banner.execWithCountdown();
-        if (choice == WarningBanner::Result::ApplyNow) {
-            proceed();
-        } else if (choice == WarningBanner::Result::Postpone) {
-            PendingSchedule pending {targetLocal, action, origin};
-            m_postponed = pending;
-            appendLog(tr("Power transition postponed for %1 minutes.").arg(warning.snoozeMinutes));
-            scheduleRetry(warning.snoozeMinutes);
-        } else {
-            appendLog(tr("Scheduling cancelled by user."));
-        }
-        return;
-    }
-
-    proceed();
-}
-
-void MainWindow::scheduleRetry(int minutesDelay) {
-    const int minutes = qMax(1, minutesDelay);
-    const int ms = minutes * 60 * 1000;
-    QTimer::singleShot(ms, this, [this]() {
-        if (!m_postponed) {
-            return;
-        }
-        auto pendingCopy = *m_postponed;
-        m_postponed.reset();
-        handleScheduleRequest(pendingCopy.target, pendingCopy.action, pendingCopy.origin);
-    });
 }
 
 void MainWindow::appendLog(const QString &line) {
@@ -411,4 +363,9 @@ WeeklyEntry *MainWindow::weeklyConfig(Qt::DayOfWeek day) {
         return &m_config.weekly.last();
     }
     return &(*it);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event) {
+    saveSettings(QString());
+    QMainWindow::closeEvent(event);
 }

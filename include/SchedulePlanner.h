@@ -6,6 +6,12 @@
 
 namespace SchedulePlanner {
 
-bool nextEvent(const AppConfig &config, const QDateTime &now, QDateTime &targetLocal, PowerAction &action);
+struct Event {
+    QDateTime shutdown;
+    QDateTime wake;
+    PowerAction action {PowerAction::None};
+};
+
+bool nextEvent(const AppConfig &config, const QDateTime &now, Event &event);
 
 }

@@ -25,7 +25,7 @@ if [[ ${reply} =~ ^[Yy]$ ]]; then
   systemctl disable --now rtcwake-daemon.service || true
 fi
 
-rm -f "${PREFIX}/rtcwake-gui" "${PREFIX}/rtcwake-daemon"
+rm -f "${PREFIX}/rtcwake-gui" "${PREFIX}/rtcwake-daemon" "${PREFIX}/rtcwake-warning"
 rm -f "${SERVICE_DST}" "${DESKTOP_DST}" "${ICON_DST}" "${DESKTOP_USER_FILE}"
 
 systemctl daemon-reload || true

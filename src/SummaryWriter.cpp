@@ -4,17 +4,17 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QStandardPaths>
 #include <QLocale>
 
 namespace SummaryWriter {
 
-bool write(const QDateTime &targetLocal, PowerAction action) {
-    const QString dirPath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
-        + QStringLiteral("/rtcwake-gui");
-    if (dirPath.isEmpty()) {
+bool write(const QString &homeDir, const QDateTime &targetLocal, PowerAction action) {
+    if (homeDir.isEmpty()) {
         return false;
     }
+
+    QDir base(homeDir);
+    const QString dirPath = base.filePath(QStringLiteral(".local/share/rtcwake-gui"));
 
     QDir dir;
     if (!dir.mkpath(dirPath)) {

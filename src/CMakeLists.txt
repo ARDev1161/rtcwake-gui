@@ -49,4 +49,12 @@ if(BUILD_DAEMON)
     )
     target_include_directories(rtcwake-daemon PRIVATE ${CMAKE_SOURCE_DIR}/include)
     target_link_libraries(rtcwake-daemon PRIVATE Qt5::Core)
+
+    add_executable(rtcwake-warning
+        WarningAppMain.cpp
+        WarningBanner.cpp
+        ${CMAKE_SOURCE_DIR}/include/WarningBanner.h
+    )
+    target_include_directories(rtcwake-warning PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    target_link_libraries(rtcwake-warning PRIVATE Qt5::Core Qt5::Gui Qt5::Widgets)
 endif()

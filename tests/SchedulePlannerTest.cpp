@@ -14,39 +14,44 @@ private slots:
 
 void SchedulePlannerTest::picks_single_future() {
     AppConfig config;
-    config.singleDate = QDate::currentDate().addDays(1);
-    config.singleTime = QTime(6, 0);
+    config.singleShutdownDate = QDate(2030, 1, 1);
+    config.singleShutdownTime = QTime(22, 0);
+    config.singleWakeDate = QDate(2030, 1, 2);
+    config.singleWakeTime = QTime(6, 0);
     config.actionId = static_cast<int>(PowerAction::PowerOff);
     for (auto &entry : config.weekly) {
         entry.enabled = false;
     }
 
-    QDateTime now = QDateTime::currentDateTime();
-    QDateTime target;
-    PowerAction action;
-    QVERIFY(SchedulePlanner::nextEvent(config, now, target, action));
-    QCOMPARE(action, PowerAction::PowerOff);
-    QCOMPARE(target.date(), config.singleDate);
-    QCOMPARE(target.time(), config.singleTime);
+    QDateTime now(QDate(2030, 1, 1), QTime(20, 0), QTimeZone::systemTimeZone());
+    SchedulePlanner::Event event;
+    QVERIFY(SchedulePlanner::nextEvent(config, now, event));
+    QCOMPARE(event.action, PowerAction::PowerOff);
+    QCOMPARE(event.shutdown, QDateTime(QDate(2030, 1, 1), QTime(22, 0), QTimeZone::systemTimeZone()));
+    QCOMPARE(event.wake, QDateTime(QDate(2030, 1, 2), QTime(6, 0), QTimeZone::systemTimeZone()));
 }
 
 void SchedulePlannerTest::falls_back_to_weekly() {
     AppConfig config;
-    config.singleDate = QDate::currentDate().addDays(-1); // past
-    config.singleTime = QTime(6, 0);
+    config.singleShutdownDate = QDate::currentDate().addDays(-2);
+    config.singleShutdownTime = QTime(22, 0);
+    config.singleWakeDate = QDate::currentDate().addDays(-1);
+    config.singleWakeTime = QTime(6, 0);
     config.actionId = static_cast<int>(PowerAction::SuspendToRam);
     for (auto &entry : config.weekly) {
         entry.enabled = (entry.day == Qt::Wednesday);
-        entry.time = QTime(9, 30);
+        entry.shutdownTime = QTime(23, 0);
+        entry.wakeTime = QTime(7, 0);
     }
 
-    QDateTime now(QDate::currentDate(), QTime(7, 0), QTimeZone::systemTimeZone());
-    QDateTime target;
-    PowerAction action;
-    QVERIFY(SchedulePlanner::nextEvent(config, now, target, action));
-    QCOMPARE(action, PowerAction::SuspendToRam);
-    QCOMPARE(target.time(), QTime(9, 30));
-    QVERIFY(target > now);
+    QDateTime now(QDate(2030, 1, 1), QTime(20, 0), QTimeZone::systemTimeZone()); // Wednesday eve
+    SchedulePlanner::Event event;
+    QVERIFY(SchedulePlanner::nextEvent(config, now, event));
+    QCOMPARE(event.action, PowerAction::SuspendToRam);
+    QVERIFY(event.shutdown > now);
+    QVERIFY(event.wake > event.shutdown);
+    QCOMPARE(event.shutdown.time(), QTime(23, 0));
+    QCOMPARE(event.wake.time(), QTime(7, 0));
 }
 
 void SchedulePlannerTest::skips_disabled() {
@@ -57,15 +62,15 @@ void SchedulePlannerTest::skips_disabled() {
     }
     config.weekly[0].enabled = true;
     config.weekly[0].day = Qt::Monday;
-    config.weekly[0].time = QTime(10, 0);
+    config.weekly[0].shutdownTime = QTime(21, 0);
+    config.weekly[0].wakeTime = QTime(6, 0);
 
     QDate base = QDate(2030, 1, 1); // Wednesday
     QDateTime now(base, QTime(12, 0), QTimeZone::systemTimeZone());
-    QDateTime target;
-    PowerAction action;
-    QVERIFY(SchedulePlanner::nextEvent(config, now, target, action));
-    QCOMPARE(target.date().dayOfWeek(), static_cast<int>(Qt::Monday));
-    QCOMPARE(action, PowerAction::Hibernate);
+    SchedulePlanner::Event event;
+    QVERIFY(SchedulePlanner::nextEvent(config, now, event));
+    QCOMPARE(event.shutdown.date().dayOfWeek(), static_cast<int>(Qt::Monday));
+    QCOMPARE(event.action, PowerAction::Hibernate);
 }
 
 QTEST_MAIN(SchedulePlannerTest)

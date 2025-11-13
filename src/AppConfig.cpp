@@ -17,7 +17,8 @@ AppConfig::AppConfig() {
         WeeklyEntry entry;
         entry.day = day;
         entry.enabled = false;
-        entry.time = QTime(7, 30);
+        entry.shutdownTime = QTime(23, 0);
+        entry.wakeTime = QTime(7, 30);
         weekly.push_back(entry);
     }
 }

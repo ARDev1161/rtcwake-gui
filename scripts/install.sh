@@ -22,6 +22,7 @@ DESKTOP_DST=/usr/share/applications/rtcwake-gui.desktop
 ICON_SRC=${PROJECT_ROOT}/resources/icons/clock.svg
 ICON_DST=/usr/share/icons/hicolor/scalable/apps/rtcwake-gui.svg
 DESKTOP_USER_DIR=$(sudo -u "${TARGET_USER}" xdg-user-dir DESKTOP 2>/dev/null || echo "${TARGET_HOME}/Desktop")
+CONFIG_PATH=${TARGET_HOME}/.config/rtcwake-gui/config.json
 
 read -r -p "Build Plasma widget? [y/N] " build_plasma
 CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Release"
@@ -45,9 +46,28 @@ install -m 755 "${BUILD_DIR}/src/rtcwake-gui" "${PREFIX}/rtcwake-gui"
 if [[ -f "${BUILD_DIR}/src/rtcwake-daemon" ]]; then
   install -m 755 "${BUILD_DIR}/src/rtcwake-daemon" "${PREFIX}/rtcwake-daemon"
 fi
+if [[ -f "${BUILD_DIR}/src/rtcwake-warning" ]]; then
+  install -m 755 "${BUILD_DIR}/src/rtcwake-warning" "${PREFIX}/rtcwake-warning"
+fi
+
+mkdir -p "$(dirname "${CONFIG_PATH}")"
+touch "${CONFIG_PATH}"
+chown "${TARGET_USER}:${TARGET_USER}" "${CONFIG_PATH}"
 
 if [[ -f "${SERVICE_SRC}" ]]; then
-  sed "s|ExecStart=.*|ExecStart=${PREFIX}/rtcwake-daemon|" "${SERVICE_SRC}" > "${SERVICE_DST}"
+  cat > "${SERVICE_DST}" <<SERVICE_UNIT
+[Unit]
+Description=rtcwake planner daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=${PREFIX}/rtcwake-daemon --config ${CONFIG_PATH} --user ${TARGET_USER} --home ${TARGET_HOME} --warning-app ${PREFIX}/rtcwake-warning
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+SERVICE_UNIT
 fi
 
 if [[ -f "${DESKTOP_SRC}" ]]; then
@@ -65,11 +85,12 @@ if [[ -f "${ICON_SRC}" ]]; then
 fi
 
 echo "Binaries installed to ${PREFIX}."
+systemctl daemon-reload
+
 if [[ -x "${PREFIX}/rtcwake-daemon" ]]; then
   read -r -p "Enable system rtcwake-daemon service now? [Y/n] " reply
   reply=${reply:-Y}
   if [[ ${reply} =~ ^[Yy]$ ]]; then
-    systemctl daemon-reload
     systemctl enable --now rtcwake-daemon.service
   fi
 fi

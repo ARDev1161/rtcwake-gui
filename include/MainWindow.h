@@ -2,13 +2,9 @@
 
 #include "ConfigRepository.h"
 #include "PowerStateDetector.h"
-#include "RtcWakeController.h"
-#include "WarningBanner.h"
 
 #include <QMainWindow>
 #include <QVector>
-
-#include <optional>
 
 class AnalogClockWidget;
 class QButtonGroup;
@@ -36,32 +32,12 @@ protected:
     void closeEvent(QCloseEvent *event) override;
 
 private:
-    /** Identifies which part of the UI initiated a schedule request. */
-    enum class ScheduleOrigin {
-        Single,
-        Weekly
-    };
-
     /** Helper pointers bound to the weekly table. */
     struct WeeklyRow {
         Qt::DayOfWeek day;
         QCheckBox *enabled {nullptr};
-        QTimeEdit *timeEdit {nullptr};
-    };
-
-    /** Snapshot of a postponed request so it can be retried later. */
-    struct PendingSchedule {
-        QDateTime target;
-        PowerAction action {PowerAction::None};
-        ScheduleOrigin origin {ScheduleOrigin::Single};
-    };
-
-    /** Runtime configuration selected by the warning controls. */
-    struct WarningConfig {
-        bool enabled {false};
-        QString message;
-        int countdownSeconds {30};
-        int snoozeMinutes {5};
+        QTimeEdit *shutdownEdit {nullptr};
+        QTimeEdit *wakeEdit {nullptr};
     };
 
     void buildUi();
@@ -72,21 +48,22 @@ private:
     void connectSignals();
 
     void loadSettings();
-    void saveSettings();
+    void saveSettings(const QString &reason);
+    void collectUiIntoConfig();
+    void applyConfigToUi();
 
     PowerAction currentAction() const;
-    WarningConfig currentWarning() const;
 
     void scheduleSingleWake();
     void scheduleNextFromWeekly();
-    void handleScheduleRequest(const QDateTime &targetLocal, PowerAction action, ScheduleOrigin origin);
-    void scheduleRetry(int minutesDelay);
 
     void appendLog(const QString &line);
     WeeklyEntry *weeklyConfig(Qt::DayOfWeek day);
 
     QDateEdit *m_dateEdit {nullptr};
     QTimeEdit *m_timeEdit {nullptr};
+    QDateEdit *m_shutdownDateEdit {nullptr};
+    QTimeEdit *m_shutdownTimeEdit {nullptr};
     AnalogClockWidget *m_clockWidget {nullptr};
     QPlainTextEdit *m_log {nullptr};
     QLabel *m_nextSummary {nullptr};
@@ -102,8 +79,6 @@ private:
     QTableWidget *m_scheduleTable {nullptr};
     QVector<WeeklyRow> m_weeklyRows;
 
-    RtcWakeController *m_controller {nullptr};
-    std::optional<PendingSchedule> m_postponed;
     ConfigRepository m_configRepo;
     AppConfig m_config;
 };
