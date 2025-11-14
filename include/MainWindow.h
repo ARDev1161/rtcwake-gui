@@ -9,16 +9,17 @@
 class AnalogClockWidget;
 class QButtonGroup;
 class QCheckBox;
+class QComboBox;
 class QDateEdit;
 class QLabel;
 class QLineEdit;
 class QPlainTextEdit;
 class QPushButton;
+class QSlider;
 class QSpinBox;
 class QTableWidget;
 class QTimeEdit;
 class QVBoxLayout;
-class QSlider;
 
 /**
  * @brief Feature-rich window that lets the user plan rtcwake events.
@@ -48,6 +49,7 @@ private:
     void populateActionGroup(QVBoxLayout *layout);
     void connectSignals();
     void updateSoundControls();
+    void updateBannerSizeControls();
 
     void loadSettings();
     void saveSettings(const QString &reason);
@@ -83,6 +85,10 @@ private:
     QPushButton *m_soundReset {nullptr};
     QSlider *m_soundVolume {nullptr};
     QLabel *m_soundVolumeLabel {nullptr};
+    QComboBox *m_themeCombo {nullptr};
+    QCheckBox *m_fullscreenBanner {nullptr};
+    QSpinBox *m_bannerWidth {nullptr};
+    QSpinBox *m_bannerHeight {nullptr};
 
     QTableWidget *m_scheduleTable {nullptr};
     QVector<WeeklyRow> m_weeklyRows;

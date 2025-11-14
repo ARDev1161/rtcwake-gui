@@ -3,6 +3,23 @@
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QTextStream>
+#include <QSize>
+
+namespace {
+WarningBanner::Theme themeFromString(const QString &value) {
+    const QString lower = value.toLower();
+    if (lower == QStringLiteral("amber")) {
+        return WarningBanner::Theme::Amber;
+    }
+    if (lower == QStringLiteral("emerald")) {
+        return WarningBanner::Theme::Emerald;
+    }
+    if (lower == QStringLiteral("slate")) {
+        return WarningBanner::Theme::Slate;
+    }
+    return WarningBanner::Theme::Crimson;
+}
+}
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
@@ -19,6 +36,10 @@ int main(int argc, char *argv[]) {
     QCommandLineOption soundEnabledOpt(QStringList{QStringLiteral("sound-enabled")}, QObject::tr("Enable sound alert"));
     QCommandLineOption soundFileOpt(QStringList{QStringLiteral("sound-file")}, QObject::tr("Sound file path"), QObject::tr("path"));
     QCommandLineOption volumeOpt(QStringList{QStringLiteral("v"), QStringLiteral("volume")}, QObject::tr("Sound volume (0-100)"), QObject::tr("volume"), QStringLiteral("70"));
+    QCommandLineOption themeOpt(QStringList{QStringLiteral("t"), QStringLiteral("theme")}, QObject::tr("Color theme (crimson/amber/emerald/slate)"), QObject::tr("theme"), QStringLiteral("crimson"));
+    QCommandLineOption fullscreenOpt(QStringList{QStringLiteral("fullscreen")}, QObject::tr("Show banner fullscreen"));
+    QCommandLineOption widthOpt(QStringList{QStringLiteral("width")}, QObject::tr("Banner width"), QObject::tr("pixels"), QStringLiteral("640"));
+    QCommandLineOption heightOpt(QStringList{QStringLiteral("height")}, QObject::tr("Banner height"), QObject::tr("pixels"), QStringLiteral("360"));
 
     parser.addOption(messageOpt);
     parser.addOption(countdownOpt);
@@ -27,6 +48,10 @@ int main(int argc, char *argv[]) {
     parser.addOption(soundEnabledOpt);
     parser.addOption(soundFileOpt);
     parser.addOption(volumeOpt);
+    parser.addOption(themeOpt);
+    parser.addOption(fullscreenOpt);
+    parser.addOption(widthOpt);
+    parser.addOption(heightOpt);
 
     parser.process(app);
 
@@ -37,9 +62,14 @@ int main(int argc, char *argv[]) {
     const bool soundEnabled = parser.isSet(soundEnabledOpt);
     const QString soundFile = parser.value(soundFileOpt);
     const int soundVolume = parser.value(volumeOpt).toInt();
+    const QString themeName = parser.value(themeOpt);
+    const bool fullscreen = parser.isSet(fullscreenOpt);
+    const int width = parser.value(widthOpt).toInt();
+    const int height = parser.value(heightOpt).toInt();
 
     WarningBanner banner(QObject::tr("%1\nAction: %2").arg(message, actionLabel), countdownSeconds);
     banner.setSoundOptions(soundEnabled, soundFile, soundVolume);
+    banner.setVisualOptions(themeFromString(themeName), fullscreen, QSize(width, height));
     const auto result = banner.execWithCountdown();
 
     switch (result) {

@@ -41,6 +41,10 @@ void ConfigRepositoryTest::saveAndLoad() {
     config.warning.soundEnabled = true;
     config.warning.soundFile = QStringLiteral("/tmp/custom.wav");
     config.warning.soundVolume = 80;
+    config.warning.theme = QStringLiteral("emerald");
+    config.warning.fullscreen = true;
+    config.warning.width = 1280;
+    config.warning.height = 720;
     config.session.user = QStringLiteral("tester");
     config.session.display = QStringLiteral(":1");
     config.session.xdgRuntimeDir = QStringLiteral("/run/user/999");
@@ -67,6 +71,10 @@ void ConfigRepositoryTest::saveAndLoad() {
     QCOMPARE(loaded.warning.soundEnabled, config.warning.soundEnabled);
     QCOMPARE(loaded.warning.soundFile, config.warning.soundFile);
     QCOMPARE(loaded.warning.soundVolume, config.warning.soundVolume);
+    QCOMPARE(loaded.warning.theme, config.warning.theme);
+    QCOMPARE(loaded.warning.fullscreen, config.warning.fullscreen);
+    QCOMPARE(loaded.warning.width, config.warning.width);
+    QCOMPARE(loaded.warning.height, config.warning.height);
     QCOMPARE(loaded.session.user, config.session.user);
     QCOMPARE(loaded.session.display, config.session.display);
     QCOMPARE(loaded.session.xdgRuntimeDir, config.session.xdgRuntimeDir);

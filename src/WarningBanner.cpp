@@ -18,6 +18,32 @@ QUrl soundUrlFromPath(const QString &path) {
     }
     return QUrl::fromLocalFile(path);
 }
+
+struct ThemeColors {
+    QString background;
+    QString text;
+    QString accent;
+    QString accentHover;
+    QString accentDisabled;
+};
+
+ThemeColors paletteForTheme(WarningBanner::Theme theme) {
+    switch (theme) {
+    case WarningBanner::Theme::Amber:
+        return {QStringLiteral("#ffb300"), QStringLiteral("#1b1b1b"),
+                QStringLiteral("#ff8f00"), QStringLiteral("#ff6f00"), QStringLiteral("#ffd54f")};
+    case WarningBanner::Theme::Emerald:
+        return {QStringLiteral("#1b5e20"), QStringLiteral("#f1f8e9"),
+                QStringLiteral("#2e7d32"), QStringLiteral("#43a047"), QStringLiteral("#81c784")};
+    case WarningBanner::Theme::Slate:
+        return {QStringLiteral("#263238"), QStringLiteral("#eceff1"),
+                QStringLiteral("#37474f"), QStringLiteral("#455a64"), QStringLiteral("#90a4ae")};
+    case WarningBanner::Theme::Crimson:
+    default:
+        return {QStringLiteral("#b71c1c"), QStringLiteral("#ffeaea"),
+                QStringLiteral("#d32f2f"), QStringLiteral("#f44336"), QStringLiteral("#ef9a9a")};
+    }
+}
 }
 
 WarningBanner::WarningBanner(const QString &message, int countdownSeconds, QWidget *parent)
@@ -59,6 +85,8 @@ WarningBanner::WarningBanner(const QString &message, int countdownSeconds, QWidg
 }
 
 WarningBanner::Result WarningBanner::execWithCountdown() {
+    applyTheme();
+    applyGeometry();
     m_timer.start(1000);
     handleTick();
     startSound();
@@ -87,6 +115,14 @@ void WarningBanner::setSoundOptions(bool enabled, const QString &filePath, int v
     m_soundVolume = volumePercent;
 }
 
+void WarningBanner::setVisualOptions(WarningBanner::Theme theme, bool fullscreen, const QSize &customSize) {
+    m_theme = theme;
+    m_fullscreen = fullscreen;
+    if (customSize.isValid()) {
+        m_customSize = customSize;
+    }
+}
+
 void WarningBanner::startSound() {
     if (!m_soundEnabled) {
         return;
@@ -105,5 +141,47 @@ void WarningBanner::stopSound() {
     if (m_soundEffect) {
         m_soundEffect->stop();
         m_soundEffect.reset();
+    }
+}
+
+void WarningBanner::applyTheme() {
+    const ThemeColors colors = paletteForTheme(m_theme);
+    const QString style = QStringLiteral(R"(
+        QDialog {
+            background-color: %1;
+        }
+        QLabel {
+            color: %2;
+        }
+        QPushButton {
+            background-color: %3;
+            color: %2;
+            border: none;
+            padding: 8px 16px;
+            font-weight: bold;
+            border-radius: 6px;
+        }
+        QPushButton:hover:!disabled {
+            background-color: %4;
+        }
+        QPushButton:disabled {
+            background-color: %5;
+            color: rgba(0, 0, 0, 0.4);
+        }
+    )").arg(colors.background, colors.text, colors.accent, colors.accentHover, colors.accentDisabled);
+    setStyleSheet(style);
+    if (m_timerLabel) {
+        m_timerLabel->setStyleSheet(QStringLiteral("font-size: 28px; font-weight: 700;"));
+    }
+}
+
+void WarningBanner::applyGeometry() {
+    if (m_fullscreen) {
+        setWindowState(Qt::WindowFullScreen);
+    } else {
+        setWindowState(windowState() & ~Qt::WindowFullScreen);
+        if (m_customSize.isValid()) {
+            resize(m_customSize);
+        }
     }
 }

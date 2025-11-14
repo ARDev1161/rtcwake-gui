@@ -3,6 +3,7 @@
 #include <QDialog>
 #include <QTimer>
 #include <QSoundEffect>
+#include <QSize>
 #include <memory>
 
 class QLabel;
@@ -14,6 +15,13 @@ class WarningBanner : public QDialog {
     Q_OBJECT
 
 public:
+    enum class Theme {
+        Crimson,
+        Amber,
+        Emerald,
+        Slate
+    };
+
     /** Modal outcome communicated back to the caller. */
     enum class Result {
         ApplyNow,
@@ -24,15 +32,20 @@ public:
     WarningBanner(const QString &message, int countdownSeconds, QWidget *parent = nullptr);
 
     /**
+     * @brief Show the dialog and tick down the timer automatically.
+     * @return User choice once the dialog closes.
+     */
+    Result execWithCountdown();
+
+    /**
      * @brief Configure the optional audio alert.
      */
     void setSoundOptions(bool enabled, const QString &filePath, int volumePercent);
 
     /**
-     * @brief Show the dialog and tick down the timer automatically.
-     * @return User choice once the dialog closes.
+     * @brief Configure colors and geometry.
      */
-    Result execWithCountdown();
+    void setVisualOptions(Theme theme, bool fullscreen, const QSize &customSize);
 
 private slots:
     void handleTick();
@@ -49,7 +62,12 @@ private:
     QString m_soundFile;
     int m_soundVolume {70};
     std::unique_ptr<QSoundEffect> m_soundEffect;
+    Theme m_theme {Theme::Crimson};
+    bool m_fullscreen {false};
+    QSize m_customSize {640, 360};
 
     void startSound();
     void stopSound();
+    void applyTheme();
+    void applyGeometry();
 };

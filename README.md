@@ -6,7 +6,7 @@ Friendly Qt5 desktop app that helps you arm `rtcwake`, pick the shutdown/suspend
 - Dual time input with analog clock preview, now covering both shutdown and wake times.
 - Single-shot and weekly schedules stored in a shared config that the daemon reads automatically.
 - Dynamic power-state radio buttons (power off / suspend / hibernate / freeze) based on `/sys/power/state`.
-- Warning banner with customizable message/countdown/snooze plus optional audio alert (bundled tone or custom file).
+- Warning banner with customizable message/countdown/snooze plus optional audio alert (bundled tone or custom file) and selectable color/size/fullscreen modes.
 - Activity log plus JSON status (`~/.local/share/rtcwake-gui/next-wake.json`) for integrations such as the Plasma widget.
 - Background daemon re-arms the RTC via `rtcwake -m no`, shows the banner, and executes the selected power action without launching the GUI.
 
@@ -42,7 +42,7 @@ Run the application from `build/src/rtcwake-gui` (must have permission to call `
 ## Planner usage
 1. **Single schedule tab** — pick shutdown date/time plus the wake date/time, verify on the analog clock, and click *Save single schedule*.
 2. **Weekly schedule tab** — enable any subset of weekdays, set shutdown and wake times per day, and click *Save weekly schedule*.
-3. **Settings tab** — select the post-shutdown action and configure the optional warning banner (message, countdown seconds, snooze minutes, sound file + volume).
+3. **Settings tab** — select the post-shutdown action and configure the optional warning banner (message, countdown seconds, snooze minutes, sound file + volume, color theme, fullscreen toggle, custom width/height).
 4. The daemon consumes the saved config and runs unattended; the GUI just edits the JSON.
 
 > Tip: the app writes the next-alarm summary to `~/.local/share/rtcwake-gui/next-wake.json`. The included Plasma widget reads that file and offers quick refresh + a button to launch the planner.

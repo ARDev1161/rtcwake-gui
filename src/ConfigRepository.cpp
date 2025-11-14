@@ -113,6 +113,19 @@ AppConfig ConfigRepository::parse(const QByteArray &json) const {
             config.warning.soundFile = soundFile;
         }
         config.warning.soundVolume = warningObj.value(QStringLiteral("soundVolume")).toInt(config.warning.soundVolume);
+        const QString theme = warningObj.value(QStringLiteral("theme")).toString();
+        if (!theme.isEmpty()) {
+            config.warning.theme = theme;
+        }
+        config.warning.fullscreen = warningObj.value(QStringLiteral("fullscreen")).toBool(config.warning.fullscreen);
+        const int width = warningObj.value(QStringLiteral("width")).toInt(config.warning.width);
+        if (width > 0) {
+            config.warning.width = width;
+        }
+        const int height = warningObj.value(QStringLiteral("height")).toInt(config.warning.height);
+        if (height > 0) {
+            config.warning.height = height;
+        }
     }
 
     QHash<int, WeeklyEntry> overrides;
@@ -178,6 +191,10 @@ QByteArray ConfigRepository::serialize(const AppConfig &config) const {
     warningObj.insert(QStringLiteral("soundEnabled"), config.warning.soundEnabled);
     warningObj.insert(QStringLiteral("soundFile"), config.warning.soundFile);
     warningObj.insert(QStringLiteral("soundVolume"), config.warning.soundVolume);
+    warningObj.insert(QStringLiteral("theme"), config.warning.theme);
+    warningObj.insert(QStringLiteral("fullscreen"), config.warning.fullscreen);
+    warningObj.insert(QStringLiteral("width"), config.warning.width);
+    warningObj.insert(QStringLiteral("height"), config.warning.height);
     root.insert(QStringLiteral("warning"), warningObj);
 
     QJsonArray weeklyArray;

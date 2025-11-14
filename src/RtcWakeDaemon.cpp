@@ -173,6 +173,15 @@ RtcWakeDaemon::WarningOutcome RtcWakeDaemon::invokeWarning(const QDateTime &shut
     args << QStringLiteral("--message") << m_config.warning.message;
     args << QStringLiteral("--countdown") << QString::number(m_config.warning.countdownSeconds);
     args << QStringLiteral("--snooze") << QString::number(m_config.warning.snoozeMinutes);
+    const QString theme = m_config.warning.theme.isEmpty() ? QStringLiteral("crimson") : m_config.warning.theme;
+    args << QStringLiteral("--theme") << theme;
+    if (m_config.warning.fullscreen) {
+        args << QStringLiteral("--fullscreen");
+    }
+    const int width = std::clamp(m_config.warning.width, 320, 3840);
+    const int height = std::clamp(m_config.warning.height, 200, 2160);
+    args << QStringLiteral("--width") << QString::number(width);
+    args << QStringLiteral("--height") << QString::number(height);
     if (m_config.warning.soundEnabled) {
         args << QStringLiteral("--sound-enabled");
         if (!m_config.warning.soundFile.isEmpty()) {

@@ -4,6 +4,7 @@
 
 #include <QButtonGroup>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QCloseEvent>
 #include <QDateEdit>
 #include <QDateTime>
@@ -221,6 +222,22 @@ QWidget *MainWindow::buildSettingsTab() {
     volumeLayout->addWidget(m_soundVolume, 1);
     volumeLayout->addWidget(m_soundVolumeLabel);
 
+    m_themeCombo = new QComboBox(warningBox);
+    m_themeCombo->addItem(tr("Crimson (high alert)"), QStringLiteral("crimson"));
+    m_themeCombo->addItem(tr("Amber (warning)"), QStringLiteral("amber"));
+    m_themeCombo->addItem(tr("Emerald (calm)"), QStringLiteral("emerald"));
+    m_themeCombo->addItem(tr("Slate (dark)"), QStringLiteral("slate"));
+
+    m_fullscreenBanner = new QCheckBox(tr("Show fullscreen"), warningBox);
+    m_bannerWidth = new QSpinBox(warningBox);
+    m_bannerWidth->setRange(320, 3840);
+    m_bannerWidth->setValue(640);
+    m_bannerWidth->setSuffix(tr(" px"));
+    m_bannerHeight = new QSpinBox(warningBox);
+    m_bannerHeight->setRange(200, 2160);
+    m_bannerHeight->setValue(360);
+    m_bannerHeight->setSuffix(tr(" px"));
+
     warningLayout->addWidget(m_warningEnabled, 0, 0, 1, 2);
     warningLayout->addWidget(new QLabel(tr("Message:"), warningBox), 1, 0);
     warningLayout->addWidget(m_warningMessage, 1, 1);
@@ -233,10 +250,18 @@ QWidget *MainWindow::buildSettingsTab() {
     warningLayout->addWidget(soundPathWidget, 5, 1);
     warningLayout->addWidget(new QLabel(tr("Volume:"), warningBox), 6, 0);
     warningLayout->addWidget(volumeWidget, 6, 1);
+    warningLayout->addWidget(new QLabel(tr("Color theme:"), warningBox), 7, 0);
+    warningLayout->addWidget(m_themeCombo, 7, 1);
+    warningLayout->addWidget(m_fullscreenBanner, 8, 0, 1, 2);
+    warningLayout->addWidget(new QLabel(tr("Dialog width:"), warningBox), 9, 0);
+    warningLayout->addWidget(m_bannerWidth, 9, 1);
+    warningLayout->addWidget(new QLabel(tr("Dialog height:"), warningBox), 10, 0);
+    warningLayout->addWidget(m_bannerHeight, 10, 1);
 
     layout->addWidget(warningBox);
     layout->addStretch();
     updateSoundControls();
+    updateBannerSizeControls();
 
     return tab;
 }
@@ -297,6 +322,9 @@ void MainWindow::connectSignals() {
             }
         });
     }
+    if (m_fullscreenBanner) {
+        connect(m_fullscreenBanner, &QCheckBox::toggled, this, [this](bool) { updateBannerSizeControls(); });
+    }
 }
 
 void MainWindow::updateSoundControls() {
@@ -316,6 +344,16 @@ void MainWindow::updateSoundControls() {
         m_soundVolumeLabel->setEnabled(enabled);
         const int value = m_soundVolume ? m_soundVolume->value() : 0;
         m_soundVolumeLabel->setText(tr("%1%").arg(value));
+    }
+}
+
+void MainWindow::updateBannerSizeControls() {
+    const bool enableSize = !(m_fullscreenBanner && m_fullscreenBanner->isChecked());
+    if (m_bannerWidth) {
+        m_bannerWidth->setEnabled(enableSize);
+    }
+    if (m_bannerHeight) {
+        m_bannerHeight->setEnabled(enableSize);
     }
 }
 
@@ -351,7 +389,23 @@ void MainWindow::applyConfigToUi() {
     if (m_soundVolume) {
         m_soundVolume->setValue(m_config.warning.soundVolume);
     }
+    if (m_themeCombo) {
+        const int idx = m_themeCombo->findData(m_config.warning.theme);
+        if (idx >= 0) {
+            m_themeCombo->setCurrentIndex(idx);
+        }
+    }
+    if (m_fullscreenBanner) {
+        m_fullscreenBanner->setChecked(m_config.warning.fullscreen);
+    }
+    if (m_bannerWidth) {
+        m_bannerWidth->setValue(m_config.warning.width);
+    }
+    if (m_bannerHeight) {
+        m_bannerHeight->setValue(m_config.warning.height);
+    }
     updateSoundControls();
+    updateBannerSizeControls();
 
     for (auto &row : m_weeklyRows) {
         if (auto *entry = weeklyConfig(row.day)) {
@@ -383,6 +437,21 @@ void MainWindow::collectUiIntoConfig() {
     m_config.warning.soundFile = soundPath;
     if (m_soundVolume) {
         m_config.warning.soundVolume = m_soundVolume->value();
+    }
+    if (m_themeCombo) {
+        const QString theme = m_themeCombo->currentData().toString();
+        if (!theme.isEmpty()) {
+            m_config.warning.theme = theme;
+        }
+    }
+    if (m_fullscreenBanner) {
+        m_config.warning.fullscreen = m_fullscreenBanner->isChecked();
+    }
+    if (m_bannerWidth) {
+        m_config.warning.width = m_bannerWidth->value();
+    }
+    if (m_bannerHeight) {
+        m_config.warning.height = m_bannerHeight->value();
     }
 
     for (const auto &row : m_weeklyRows) {

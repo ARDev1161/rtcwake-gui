@@ -16,6 +16,10 @@ struct WarningPreferences {
     bool soundEnabled {false};
     QString soundFile {QStringLiteral(":/rtcwake/sounds/chime.wav")};
     int soundVolume {70};
+    QString theme {QStringLiteral("crimson")};
+    bool fullscreen {false};
+    int width {640};
+    int height {360};
 };
 
 /** Entry representing a weekly schedule row. */
