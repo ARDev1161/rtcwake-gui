@@ -99,9 +99,7 @@ void RtcWakeDaemon::planNext(const QString &reason) {
     m_nextWake = next.wake;
     m_nextAction = next.action;
 
-    if (next.action == PowerAction::None) {
-        programAlarm(next.wake, next.action);
-    }
+    programAlarm(next.wake, next.action);
     scheduleEventTimer(next.shutdown, next.action);
     SummaryWriter::write(m_options.targetHome, next.wake, next.action);
 
@@ -199,7 +197,6 @@ void RtcWakeDaemon::handleEventTimeout() {
 }
 
 void RtcWakeDaemon::programAlarm(const QDateTime &wake, PowerAction action) {
-    Q_UNUSED(action);
     const QString wakeLabel = wake.isValid() ? formatDateTime(wake) : tr("<invalid wake time>");
     auto result = m_controller.programAlarm(wake.toUTC());
     if (result.success) {
@@ -213,7 +210,7 @@ void RtcWakeDaemon::programAlarm(const QDateTime &wake, PowerAction action) {
                      result.stdErr.isEmpty() ? tr("<no stderr>") : result.stdErr));
     }
     appendPersistentLog(QStringLiteral("rtcwake"),
-                        {{QStringLiteral("action"), RtcWakeController::actionLabel(PowerAction::None)},
+                        {{QStringLiteral("action"), RtcWakeController::actionLabel(action)},
                          {QStringLiteral("wake"), wakeLabel},
                          {QStringLiteral("command"), result.commandLine.isEmpty() ? tr("<unknown>") : result.commandLine},
                          {QStringLiteral("exit"), QString::number(result.exitCode)},
