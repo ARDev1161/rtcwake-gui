@@ -168,6 +168,15 @@ RtcWakeDaemon::WarningOutcome RtcWakeDaemon::invokeWarning(const QDateTime &shut
     if (!env.value(QStringLiteral("DBUS_SESSION_BUS_ADDRESS")).isEmpty()) {
         args << QStringLiteral("DBUS_SESSION_BUS_ADDRESS=") + env.value(QStringLiteral("DBUS_SESSION_BUS_ADDRESS"));
     }
+    if (!env.value(QStringLiteral("XAUTHORITY")).isEmpty()) {
+        args << QStringLiteral("XAUTHORITY=") + env.value(QStringLiteral("XAUTHORITY"));
+    }
+    if (!env.value(QStringLiteral("WAYLAND_DISPLAY")).isEmpty()) {
+        args << QStringLiteral("WAYLAND_DISPLAY=") + env.value(QStringLiteral("WAYLAND_DISPLAY"));
+    }
+    if (!m_options.targetHome.isEmpty()) {
+        args << QStringLiteral("HOME=") + m_options.targetHome;
+    }
 
     args << m_options.warningApp;
     args << QStringLiteral("--message") << m_config.warning.message;
@@ -199,7 +208,15 @@ RtcWakeDaemon::WarningOutcome RtcWakeDaemon::invokeWarning(const QDateTime &shut
         return WarningOutcome::Apply;
     }
 
+    const QString stdoutText = QString::fromLocal8Bit(process.readAllStandardOutput()).trimmed();
+    const QString stderrText = QString::fromLocal8Bit(process.readAllStandardError()).trimmed();
     const int exitCode = process.exitCode();
+    if (exitCode != 0) {
+        log(tr("Warning dialog exited with %1 (stdout: %2, stderr: %3)")
+                .arg(exitCode)
+                .arg(stdoutText.isEmpty() ? QStringLiteral("<empty>") : stdoutText)
+                .arg(stderrText.isEmpty() ? QStringLiteral("<empty>") : stderrText));
+    }
     if (exitCode == 0) {
         return WarningOutcome::Apply;
     }
