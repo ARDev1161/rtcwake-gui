@@ -49,6 +49,8 @@ void ConfigRepositoryTest::saveAndLoad() {
     config.session.display = QStringLiteral(":1");
     config.session.xdgRuntimeDir = QStringLiteral("/run/user/999");
     config.session.dbusAddress = QStringLiteral("unix:path=/run/user/999/bus");
+    config.session.xauthority = QStringLiteral("/run/user/999/xauth");
+    config.session.waylandDisplay = QStringLiteral("wayland-1");
 
     for (auto &entry : config.weekly) {
         entry.enabled = (entry.day == Qt::Monday || entry.day == Qt::Friday);
@@ -79,6 +81,8 @@ void ConfigRepositoryTest::saveAndLoad() {
     QCOMPARE(loaded.session.display, config.session.display);
     QCOMPARE(loaded.session.xdgRuntimeDir, config.session.xdgRuntimeDir);
     QCOMPARE(loaded.session.dbusAddress, config.session.dbusAddress);
+    QCOMPARE(loaded.session.xauthority, config.session.xauthority);
+    QCOMPARE(loaded.session.waylandDisplay, config.session.waylandDisplay);
 
     for (int i = 0; i < config.weekly.size(); ++i) {
         QCOMPARE(static_cast<int>(loaded.weekly.at(i).day), static_cast<int>(config.weekly.at(i).day));

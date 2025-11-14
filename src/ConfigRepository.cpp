@@ -170,6 +170,8 @@ AppConfig ConfigRepository::parse(const QByteArray &json) const {
         config.session.display = sessionObj.value(QStringLiteral("display")).toString(config.session.display);
         config.session.xdgRuntimeDir = sessionObj.value(QStringLiteral("xdgRuntimeDir")).toString(config.session.xdgRuntimeDir);
         config.session.dbusAddress = sessionObj.value(QStringLiteral("dbusAddress")).toString(config.session.dbusAddress);
+        config.session.xauthority = sessionObj.value(QStringLiteral("xauthority")).toString(config.session.xauthority);
+        config.session.waylandDisplay = sessionObj.value(QStringLiteral("waylandDisplay")).toString(config.session.waylandDisplay);
     }
 
     return config;
@@ -213,6 +215,8 @@ QByteArray ConfigRepository::serialize(const AppConfig &config) const {
     sessionObj.insert(QStringLiteral("display"), config.session.display);
     sessionObj.insert(QStringLiteral("xdgRuntimeDir"), config.session.xdgRuntimeDir);
     sessionObj.insert(QStringLiteral("dbusAddress"), config.session.dbusAddress);
+    sessionObj.insert(QStringLiteral("xauthority"), config.session.xauthority);
+    sessionObj.insert(QStringLiteral("waylandDisplay"), config.session.waylandDisplay);
     root.insert(QStringLiteral("session"), sessionObj);
 
     QJsonDocument doc(root);

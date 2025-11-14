@@ -220,6 +220,12 @@ QProcessEnvironment RtcWakeDaemon::buildUserEnvironment() const {
     if (!m_config.session.dbusAddress.isEmpty()) {
         env.insert(QStringLiteral("DBUS_SESSION_BUS_ADDRESS"), m_config.session.dbusAddress);
     }
+    if (!m_config.session.xauthority.isEmpty()) {
+        env.insert(QStringLiteral("XAUTHORITY"), m_config.session.xauthority);
+    }
+    if (!m_config.session.waylandDisplay.isEmpty()) {
+        env.insert(QStringLiteral("WAYLAND_DISPLAY"), m_config.session.waylandDisplay);
+    }
     return env;
 }
 

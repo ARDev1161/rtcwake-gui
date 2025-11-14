@@ -36,6 +36,8 @@ struct SessionInfo {
     QString display;
     QString xdgRuntimeDir;
     QString dbusAddress;
+    QString xauthority;
+    QString waylandDisplay;
 };
 
 /** Aggregate structure storing everything we persist between runs. */

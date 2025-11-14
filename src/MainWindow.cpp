@@ -466,6 +466,8 @@ void MainWindow::collectUiIntoConfig() {
     m_config.session.display = qEnvironmentVariable("DISPLAY");
     m_config.session.xdgRuntimeDir = qEnvironmentVariable("XDG_RUNTIME_DIR");
     m_config.session.dbusAddress = qEnvironmentVariable("DBUS_SESSION_BUS_ADDRESS");
+    m_config.session.xauthority = qEnvironmentVariable("XAUTHORITY");
+    m_config.session.waylandDisplay = qEnvironmentVariable("WAYLAND_DISPLAY");
 }
 
 void MainWindow::saveSettings(const QString &reason) {
