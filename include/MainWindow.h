@@ -46,6 +46,7 @@ private:
     QWidget *buildSingleTab();
     QWidget *buildWeeklyTab();
     QWidget *buildSettingsTab();
+    QWidget *buildLogsTab();
     void populateActionGroup(QVBoxLayout *layout);
     void connectSignals();
     void updateSoundControls();
@@ -55,13 +56,14 @@ private:
     void saveSettings(const QString &reason);
     void collectUiIntoConfig();
     void applyConfigToUi();
+    QString logFilePath() const;
+    void refreshLogViewer();
 
     PowerAction currentAction() const;
 
     void scheduleSingleWake();
     void scheduleNextFromWeekly();
 
-    void appendLog(const QString &line);
     WeeklyEntry *weeklyConfig(Qt::DayOfWeek day);
 
     QDateEdit *m_dateEdit {nullptr};
@@ -69,7 +71,7 @@ private:
     QDateEdit *m_shutdownDateEdit {nullptr};
     QTimeEdit *m_shutdownTimeEdit {nullptr};
     AnalogClockWidget *m_clockWidget {nullptr};
-    QPlainTextEdit *m_log {nullptr};
+    QPlainTextEdit *m_logViewer {nullptr};
     QLabel *m_nextSummary {nullptr};
 
     QButtonGroup *m_actionGroup {nullptr};

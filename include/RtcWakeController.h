@@ -28,6 +28,7 @@ public:
         QString stdOut;
         QString stdErr;
         QString commandLine;
+        int exitCode {-1};
     };
 
     explicit RtcWakeController(QObject *parent = nullptr);

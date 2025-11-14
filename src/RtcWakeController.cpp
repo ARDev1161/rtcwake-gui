@@ -76,6 +76,7 @@ RtcWakeController::CommandResult RtcWakeController::runProcess(const QStringList
     process.waitForFinished(-1);
     result.stdOut = QString::fromLocal8Bit(process.readAllStandardOutput());
     result.stdErr = QString::fromLocal8Bit(process.readAllStandardError());
+    result.exitCode = process.exitCode();
     result.success = (process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0);
     return result;
 }

@@ -5,11 +5,13 @@
 
 #include <QCoreApplication>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QLoggingCategory>
 #include <QProcessEnvironment>
 #include <QProcess>
 #include <QLocale>
+#include <QTextStream>
 #include <limits>
 #include <algorithm>
 
@@ -19,12 +21,19 @@ constexpr int kPeriodicIntervalMs = 5 * 60 * 1000; // 5 minutes
 QString formatDateTime(const QDateTime &dt) {
     return QLocale().toString(dt, QLocale::LongFormat);
 }
+
+QString sanitizeSingleLine(QString text) {
+    text.replace(QLatin1Char('\r'), QLatin1Char(' '));
+    text.replace(QLatin1Char('\n'), QLatin1Char(' '));
+    return text.trimmed();
+}
 }
 
 RtcWakeDaemon::RtcWakeDaemon(Options options, QObject *parent)
     : QObject(parent),
       m_repo(options.configPath),
-      m_options(std::move(options)) {
+      m_options(std::move(options)),
+      m_rtcwakeLogPath(resolveLogPath()) {
     connect(&m_periodic, &QTimer::timeout, this, &RtcWakeDaemon::handlePeriodic);
     connect(&m_eventTimer, &QTimer::timeout, this, &RtcWakeDaemon::handleEventTimeout);
     m_periodic.setInterval(kPeriodicIntervalMs);
@@ -149,6 +158,7 @@ void RtcWakeDaemon::handleEventTimeout() {
                          wakeLabel,
                          result.commandLine.isEmpty() ? tr("<unknown command>") : result.commandLine));
         }
+        appendRtcwakeLog(actionLabel, wakeLabel, result);
     }
 
     QTimer::singleShot(0, this, [this]() { planNext(tr("Action completed")); });
@@ -168,6 +178,7 @@ void RtcWakeDaemon::programAlarm(const QDateTime &wake, PowerAction action) {
                      result.commandLine.isEmpty() ? tr("<unknown command>") : result.commandLine,
                      result.stdErr.isEmpty() ? tr("<no stderr>") : result.stdErr));
     }
+    appendRtcwakeLog(RtcWakeController::actionLabel(PowerAction::None), wakeLabel, result);
 }
 
 RtcWakeDaemon::WarningOutcome RtcWakeDaemon::invokeWarning(const QDateTime &shutdown, PowerAction action) {
@@ -270,4 +281,49 @@ QProcessEnvironment RtcWakeDaemon::buildUserEnvironment() const {
 
 void RtcWakeDaemon::log(const QString &message) const {
     qInfo().noquote() << message;
+}
+
+QString RtcWakeDaemon::resolveLogPath() const {
+    QString base = m_options.targetHome;
+    if (base.isEmpty()) {
+        base = QDir::homePath();
+    }
+    if (base.isEmpty()) {
+        return QString();
+    }
+    QDir dir(base);
+    return dir.filePath(QStringLiteral(".local/share/rtcwake-gui/log.txt"));
+}
+
+void RtcWakeDaemon::appendRtcwakeLog(const QString &actionLabel, const QString &wakeLabel,
+                                     const RtcWakeController::CommandResult &result) const {
+    if (m_rtcwakeLogPath.isEmpty()) {
+        return;
+    }
+
+    QFileInfo info(m_rtcwakeLogPath);
+    QDir dir = info.dir();
+    if (!dir.exists() && !dir.mkpath(QStringLiteral("."))) {
+        qWarning().noquote() << "Failed to create log directory" << dir.absolutePath();
+        return;
+    }
+
+    QFile file(info.filePath());
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
+        qWarning().noquote() << "Failed to open log file" << info.filePath();
+        return;
+    }
+
+    QTextStream stream(&file);
+    const QString stamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd hh:mm:ss"));
+    const QString command = sanitizeSingleLine(result.commandLine);
+    const QString stderrText = sanitizeSingleLine(result.stdErr);
+
+    stream << "[" << stamp << "] "
+           << "action=\"" << actionLabel << "\" "
+           << "wake=\"" << wakeLabel << "\" "
+           << "command=\"" << (command.isEmpty() ? QStringLiteral("<unknown>") : command) << "\" "
+           << "exit=" << result.exitCode << " "
+           << "success=" << (result.success ? QStringLiteral("true") : QStringLiteral("false")) << " "
+           << "stderr=\"" << (stderrText.isEmpty() ? QStringLiteral("<empty>") : stderrText) << "\"\n";
 }

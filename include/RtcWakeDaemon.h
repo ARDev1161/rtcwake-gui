@@ -38,6 +38,9 @@ private:
     void cancelEventTimer();
     void programAlarm(const QDateTime &wake, PowerAction action);
     void log(const QString &message) const;
+    QString resolveLogPath() const;
+    void appendRtcwakeLog(const QString &actionLabel, const QString &wakeLabel,
+                          const RtcWakeController::CommandResult &result) const;
 
     enum class WarningOutcome {
         Apply,
@@ -58,4 +61,5 @@ private:
     QDateTime m_nextWake;
     PowerAction m_nextAction {PowerAction::None};
     RtcWakeController m_controller;
+    QString m_rtcwakeLogPath;
 };

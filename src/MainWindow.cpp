@@ -9,6 +9,7 @@
 #include <QDateEdit>
 #include <QDateTime>
 #include <QDir>
+#include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QGridLayout>
@@ -28,6 +29,7 @@
 #include <QTabWidget>
 #include <QTableWidget>
 #include <QTimeEdit>
+#include <QTextCursor>
 #include <QVBoxLayout>
 #include <algorithm>
 
@@ -63,9 +65,7 @@ void MainWindow::buildUi() {
     tabs->addTab(buildSingleTab(), tr("Single schedule"));
     tabs->addTab(buildWeeklyTab(), tr("Weekly schedule"));
     tabs->addTab(buildSettingsTab(), tr("Settings"));
-
-    m_log = new QPlainTextEdit(this);
-    m_log->setReadOnly(true);
+    tabs->addTab(buildLogsTab(), tr("Logs"));
 
     m_nextSummary = new QLabel(tr("Configuration not saved yet."), this);
 
@@ -73,8 +73,6 @@ void MainWindow::buildUi() {
     auto *layout = new QVBoxLayout(central);
     layout->addWidget(tabs);
     layout->addWidget(m_nextSummary);
-    layout->addWidget(new QLabel(tr("Activity log:"), this));
-    layout->addWidget(m_log, 1);
     setCentralWidget(central);
     resize(960, 720);
 }
@@ -266,6 +264,31 @@ QWidget *MainWindow::buildSettingsTab() {
     return tab;
 }
 
+QWidget *MainWindow::buildLogsTab() {
+    auto *tab = new QWidget(this);
+    auto *layout = new QVBoxLayout(tab);
+
+    auto *hint = new QLabel(tr("Showing ~/.local/share/rtcwake-gui/log.txt"), tab);
+    hint->setWordWrap(true);
+    layout->addWidget(hint);
+
+    m_logViewer = new QPlainTextEdit(tab);
+    m_logViewer->setReadOnly(true);
+    m_logViewer->setPlaceholderText(tr("No log entries yet."));
+    layout->addWidget(m_logViewer, 1);
+
+    auto *buttonRow = new QHBoxLayout();
+    buttonRow->addStretch();
+    auto *refreshButton = new QPushButton(tr("Refresh logs"), tab);
+    buttonRow->addWidget(refreshButton);
+    layout->addLayout(buttonRow);
+
+    connect(refreshButton, &QPushButton::clicked, this, &MainWindow::refreshLogViewer);
+    refreshLogViewer();
+
+    return tab;
+}
+
 void MainWindow::populateActionGroup(QVBoxLayout *layout) {
     m_actionGroup = new QButtonGroup(this);
     m_actionGroup->setExclusive(true);
@@ -361,6 +384,33 @@ void MainWindow::loadSettings() {
     m_config = m_configRepo.load();
     applyConfigToUi();
     m_nextSummary->setText(tr("Config loaded for %1").arg(currentUser()));
+    refreshLogViewer();
+}
+
+QString MainWindow::logFilePath() const {
+    QDir home(QDir::homePath());
+    return home.filePath(QStringLiteral(".local/share/rtcwake-gui/log.txt"));
+}
+
+void MainWindow::refreshLogViewer() {
+    if (!m_logViewer) {
+        return;
+    }
+
+    const QString path = logFilePath();
+    QFile file(path);
+    if (!file.exists()) {
+        m_logViewer->setPlainText(tr("%1 does not exist yet.").arg(path));
+        return;
+    }
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        m_logViewer->setPlainText(tr("Failed to read %1").arg(path));
+        return;
+    }
+
+    const QByteArray data = file.readAll();
+    m_logViewer->setPlainText(QString::fromLocal8Bit(data));
+    m_logViewer->moveCursor(QTextCursor::End);
 }
 
 void MainWindow::applyConfigToUi() {
@@ -478,8 +528,12 @@ void MainWindow::saveSettings(const QString &reason) {
     }
 
     const QString stamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
-    m_nextSummary->setText(tr("Saved at %1").arg(stamp));
-    appendLog(reason.isEmpty() ? tr("Configuration updated.") : reason);
+    if (reason.isEmpty()) {
+        m_nextSummary->setText(tr("Saved at %1").arg(stamp));
+    } else {
+        m_nextSummary->setText(tr("%1 — %2").arg(stamp, reason));
+    }
+    refreshLogViewer();
 }
 
 void MainWindow::scheduleSingleWake() {
@@ -517,11 +571,6 @@ PowerAction MainWindow::currentAction() const {
         return PowerAction::None;
     }
     return static_cast<PowerAction>(id);
-}
-
-void MainWindow::appendLog(const QString &line) {
-    const QString stamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
-    m_log->appendPlainText(QStringLiteral("[%1] %2").arg(stamp, line));
 }
 
 WeeklyEntry *MainWindow::weeklyConfig(Qt::DayOfWeek day) {
