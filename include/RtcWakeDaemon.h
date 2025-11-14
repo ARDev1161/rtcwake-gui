@@ -65,4 +65,5 @@ private:
     PowerAction m_nextAction {PowerAction::None};
     RtcWakeController m_controller;
     QString m_rtcwakeLogPath;
+    bool m_snoozeActive {false};
 };

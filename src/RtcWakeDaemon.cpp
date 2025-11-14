@@ -73,10 +73,16 @@ void RtcWakeDaemon::handleConfigChanged() {
 }
 
 void RtcWakeDaemon::handlePeriodic() {
+    if (m_snoozeActive && m_eventTimer.isActive() && m_nextShutdown.isValid()
+        && QDateTime::currentDateTime() < m_nextShutdown) {
+        log(tr("Snoozed event pending; skipping periodic replanning"));
+        return;
+    }
     planNext(tr("Periodic refresh"));
 }
 
 void RtcWakeDaemon::reloadConfig() {
+    m_snoozeActive = false;
     m_config = m_repo.load();
     planNext(tr("Config reloaded"));
     appendPersistentLog(QStringLiteral("config_reload"),
@@ -141,6 +147,7 @@ void RtcWakeDaemon::handleEventTimeout() {
 
     const auto outcome = invokeWarning(m_nextShutdown, m_nextAction);
     if (outcome == WarningOutcome::Snooze) {
+        m_snoozeActive = true;
         const int snoozeMs = m_config.warning.snoozeMinutes * 60 * 1000;
         m_nextShutdown = QDateTime::currentDateTime().addMSecs(snoozeMs);
         scheduleEventTimer(m_nextShutdown, m_nextAction);
@@ -152,6 +159,7 @@ void RtcWakeDaemon::handleEventTimeout() {
     }
 
     if (outcome == WarningOutcome::Cancel) {
+        m_snoozeActive = false;
         log(tr("Power action canceled by user"));
         appendPersistentLog(QStringLiteral("warning"),
                             {{QStringLiteral("outcome"), QStringLiteral("cancel")}});
@@ -159,6 +167,7 @@ void RtcWakeDaemon::handleEventTimeout() {
         return;
     }
 
+    m_snoozeActive = false;
     if (m_nextAction == PowerAction::None) {
         log(tr("No power transition requested; nothing to execute"));
         appendPersistentLog(QStringLiteral("action"),
