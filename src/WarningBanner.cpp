@@ -5,7 +5,10 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QSoundEffect>
+#include <QMediaPlayer>
+#include <QMediaPlaylist>
 #include <QUrl>
+#include <QDir>
 #include <algorithm>
 
 namespace {
@@ -16,7 +19,11 @@ QUrl soundUrlFromPath(const QString &path) {
     if (path.startsWith(QStringLiteral(":/"))) {
         return QUrl(QStringLiteral("qrc%1").arg(path));
     }
-    return QUrl::fromLocalFile(path);
+    QString normalized = path;
+    if (normalized.startsWith(QStringLiteral("~/"))) {
+        normalized.replace(0, 1, QDir::homePath());
+    }
+    return QUrl::fromLocalFile(QDir::cleanPath(normalized));
 }
 
 struct ThemeColors {
@@ -127,20 +134,47 @@ void WarningBanner::startSound() {
     if (!m_soundEnabled) {
         return;
     }
+    stopSound();
     const QString source = m_soundFile.isEmpty() ? QStringLiteral(":/rtcwake/sounds/chime.wav") : m_soundFile;
-    auto effect = std::make_unique<QSoundEffect>(this);
-    effect->setSource(soundUrlFromPath(source));
+    const QUrl url = soundUrlFromPath(source);
+    const QString localPath = url.isLocalFile() ? url.toLocalFile() : QString();
+    const bool useSoundEffect = (url.scheme() == QStringLiteral("qrc")
+                                 || (!localPath.isEmpty() && localPath.endsWith(QStringLiteral(".wav"), Qt::CaseInsensitive)));
     const int clamped = std::clamp(m_soundVolume, 0, 100);
-    effect->setVolume(static_cast<qreal>(clamped) / 100.0);
-    effect->setLoopCount(QSoundEffect::Infinite);
-    effect->play();
-    m_soundEffect = std::move(effect);
+    if (useSoundEffect) {
+        auto effect = std::make_unique<QSoundEffect>(this);
+        effect->setSource(url);
+        effect->setVolume(static_cast<qreal>(clamped) / 100.0);
+        effect->setLoopCount(QSoundEffect::Infinite);
+        effect->play();
+        m_soundEffect = std::move(effect);
+        return;
+    }
+
+    auto playlist = std::make_unique<QMediaPlaylist>(this);
+    playlist->addMedia(url);
+    playlist->setPlaybackMode(QMediaPlaylist::Loop);
+
+    auto player = std::make_unique<QMediaPlayer>(this);
+    player->setPlaylist(playlist.get());
+    player->setVolume(clamped);
+    player->play();
+
+    m_mediaPlaylist = std::move(playlist);
+    m_mediaPlayer = std::move(player);
 }
 
 void WarningBanner::stopSound() {
     if (m_soundEffect) {
         m_soundEffect->stop();
         m_soundEffect.reset();
+    }
+    if (m_mediaPlayer) {
+        m_mediaPlayer->stop();
+        m_mediaPlayer.reset();
+    }
+    if (m_mediaPlaylist) {
+        m_mediaPlaylist.reset();
     }
 }
 

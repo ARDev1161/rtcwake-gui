@@ -3,11 +3,15 @@
 #include <QDialog>
 #include <QTimer>
 #include <QSoundEffect>
+#include <QMediaPlayer>
+#include <QMediaPlaylist>
 #include <QSize>
 #include <memory>
 
 class QLabel;
 class QPushButton;
+class QMediaPlayer;
+class QMediaPlaylist;
 /**
  * @brief Modal dialog that counts down before executing the selected power action.
  */
@@ -62,6 +66,8 @@ private:
     QString m_soundFile;
     int m_soundVolume {70};
     std::unique_ptr<QSoundEffect> m_soundEffect;
+    std::unique_ptr<QMediaPlayer> m_mediaPlayer;
+    std::unique_ptr<QMediaPlaylist> m_mediaPlaylist;
     Theme m_theme {Theme::Crimson};
     bool m_fullscreen {false};
     QSize m_customSize {640, 360};
