@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 
 #include "AnalogClockWidget.h"
+#include "RtcWakeController.h"
 
 #include <QButtonGroup>
 #include <QCheckBox>
@@ -30,6 +31,7 @@
 #include <QTableWidget>
 #include <QTimeEdit>
 #include <QTextCursor>
+#include <QTextStream>
 #include <QVBoxLayout>
 #include <algorithm>
 
@@ -45,6 +47,12 @@ QString currentUser() {
         return QString::fromLocal8Bit(user);
     }
     return QStringLiteral("unknown");
+}
+
+QString sanitizeLogValue(QString text) {
+    text.replace(QLatin1Char('\r'), QLatin1Char(' '));
+    text.replace(QLatin1Char('\n'), QLatin1Char(' '));
+    return text.trimmed();
 }
 
 const QString kDefaultSoundPath = QStringLiteral(":/rtcwake/sounds/chime.wav");
@@ -413,6 +421,28 @@ void MainWindow::refreshLogViewer() {
     m_logViewer->moveCursor(QTextCursor::End);
 }
 
+void MainWindow::appendUserLog(const QString &category, const QList<QPair<QString, QString>> &fields) {
+    const QString path = logFilePath();
+    QFileInfo info(path);
+    QDir dir = info.dir();
+    if (!dir.exists() && !dir.mkpath(QStringLiteral("."))) {
+        return;
+    }
+
+    QFile file(info.filePath());
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
+        return;
+    }
+
+    QTextStream stream(&file);
+    const QString stamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd hh:mm:ss"));
+    stream << "[" << stamp << "] category=\"" << sanitizeLogValue(category) << "\"";
+    for (const auto &field : fields) {
+        stream << " " << field.first << "=\"" << sanitizeLogValue(field.second) << "\"";
+    }
+    stream << "\n";
+}
+
 void MainWindow::applyConfigToUi() {
     m_shutdownDateEdit->setDate(m_config.singleShutdownDate);
     m_shutdownTimeEdit->setTime(m_config.singleShutdownTime);
@@ -533,6 +563,13 @@ void MainWindow::saveSettings(const QString &reason) {
     } else {
         m_nextSummary->setText(tr("%1 — %2").arg(stamp, reason));
     }
+    const QDateTime shutdown(m_config.singleShutdownDate, m_config.singleShutdownTime);
+    const QDateTime wake(m_config.singleWakeDate, m_config.singleWakeTime);
+    appendUserLog(QStringLiteral("config_save"),
+                  {{QStringLiteral("reason"), reason.isEmpty() ? tr("unspecified") : reason},
+                   {QStringLiteral("shutdown"), shutdown.isValid() ? formatDateTime(shutdown) : tr("<invalid>")},
+                   {QStringLiteral("wake"), wake.isValid() ? formatDateTime(wake) : tr("<invalid>")},
+                   {QStringLiteral("action"), RtcWakeController::actionLabel(currentAction())}});
     refreshLogViewer();
 }
 

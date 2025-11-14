@@ -43,6 +43,8 @@ RtcWakeDaemon::RtcWakeDaemon(Options options, QObject *parent)
 
 void RtcWakeDaemon::start() {
     log(tr("Daemon starting (PID %1)").arg(QCoreApplication::applicationPid()));
+    appendPersistentLog(QStringLiteral("daemon_start"),
+                        {{QStringLiteral("pid"), QString::number(QCoreApplication::applicationPid())}});
     watchConfig();
     reloadConfig();
     m_periodic.start();
@@ -67,6 +69,7 @@ void RtcWakeDaemon::watchConfig() {
 
 void RtcWakeDaemon::handleConfigChanged() {
     QTimer::singleShot(500, this, [this]() { reloadConfig(); });
+    appendPersistentLog(QStringLiteral("config_watch"), {{QStringLiteral("event"), QStringLiteral("changed")}});
 }
 
 void RtcWakeDaemon::handlePeriodic() {
@@ -76,6 +79,8 @@ void RtcWakeDaemon::handlePeriodic() {
 void RtcWakeDaemon::reloadConfig() {
     m_config = m_repo.load();
     planNext(tr("Config reloaded"));
+    appendPersistentLog(QStringLiteral("config_reload"),
+                        {{QStringLiteral("path"), m_options.configPath.isEmpty() ? tr("<default>") : m_options.configPath}});
 }
 
 void RtcWakeDaemon::planNext(const QString &reason) {
@@ -84,6 +89,9 @@ void RtcWakeDaemon::planNext(const QString &reason) {
     if (!SchedulePlanner::nextEvent(m_config, now, next)) {
         cancelEventTimer();
         log(tr("No upcoming events. %1").arg(reason));
+        appendPersistentLog(QStringLiteral("schedule"),
+                            {{QStringLiteral("status"), QStringLiteral("empty")},
+                             {QStringLiteral("reason"), reason.isEmpty() ? tr("<unspecified>") : reason}});
         return;
     }
 
@@ -97,8 +105,17 @@ void RtcWakeDaemon::planNext(const QString &reason) {
     scheduleEventTimer(next.shutdown, next.action);
     SummaryWriter::write(m_options.targetHome, next.wake, next.action);
 
+    const QString shutdownLabel = formatDateTime(next.shutdown);
+    const QString wakeLabel = formatDateTime(next.wake);
+    const QString actionLabel = RtcWakeController::actionLabel(next.action);
     log(tr("Next shutdown at %1, wake at %2 (%3)")
-            .arg(formatDateTime(next.shutdown), formatDateTime(next.wake), RtcWakeController::actionLabel(next.action)));
+            .arg(shutdownLabel, wakeLabel, actionLabel));
+    appendPersistentLog(QStringLiteral("schedule"),
+                        {{QStringLiteral("status"), QStringLiteral("planned")},
+                         {QStringLiteral("reason"), reason.isEmpty() ? tr("<unspecified>") : reason},
+                         {QStringLiteral("shutdown"), shutdownLabel},
+                         {QStringLiteral("wake"), wakeLabel},
+                         {QStringLiteral("action"), actionLabel}});
 }
 
 void RtcWakeDaemon::scheduleEventTimer(const QDateTime &shutdown, PowerAction action) {
@@ -130,19 +147,30 @@ void RtcWakeDaemon::handleEventTimeout() {
         m_nextShutdown = QDateTime::currentDateTime().addMSecs(snoozeMs);
         scheduleEventTimer(m_nextShutdown, m_nextAction);
         log(tr("Power action snoozed for %1 minutes").arg(m_config.warning.snoozeMinutes));
+        appendPersistentLog(QStringLiteral("warning"),
+                            {{QStringLiteral("outcome"), QStringLiteral("snooze")},
+                             {QStringLiteral("minutes"), QString::number(m_config.warning.snoozeMinutes)}});
         return;
     }
 
     if (outcome == WarningOutcome::Cancel) {
         log(tr("Power action canceled by user"));
+        appendPersistentLog(QStringLiteral("warning"),
+                            {{QStringLiteral("outcome"), QStringLiteral("cancel")}});
         planNext(tr("User canceled"));
         return;
     }
 
     if (m_nextAction == PowerAction::None) {
         log(tr("No power transition requested; nothing to execute"));
+        appendPersistentLog(QStringLiteral("action"),
+                            {{QStringLiteral("status"), QStringLiteral("skipped")},
+                             {QStringLiteral("reason"), QStringLiteral("no_action")}});
     } else if (!m_nextWake.isValid()) {
         log(tr("Cannot arm rtcwake: next wake time is invalid"));
+        appendPersistentLog(QStringLiteral("action"),
+                            {{QStringLiteral("status"), QStringLiteral("skipped")},
+                             {QStringLiteral("reason"), QStringLiteral("invalid_wake")}});
     } else {
         const QString actionLabel = RtcWakeController::actionLabel(m_nextAction);
         const QString wakeLabel = formatDateTime(m_nextWake);
@@ -158,7 +186,13 @@ void RtcWakeDaemon::handleEventTimeout() {
                          wakeLabel,
                          result.commandLine.isEmpty() ? tr("<unknown command>") : result.commandLine));
         }
-        appendRtcwakeLog(actionLabel, wakeLabel, result);
+        appendPersistentLog(QStringLiteral("rtcwake"),
+                            {{QStringLiteral("action"), actionLabel},
+                             {QStringLiteral("wake"), wakeLabel},
+                             {QStringLiteral("command"), result.commandLine.isEmpty() ? tr("<unknown>") : result.commandLine},
+                             {QStringLiteral("exit"), QString::number(result.exitCode)},
+                             {QStringLiteral("success"), result.success ? QStringLiteral("true") : QStringLiteral("false")},
+                             {QStringLiteral("stderr"), result.stdErr.isEmpty() ? tr("<empty>") : result.stdErr}});
     }
 
     QTimer::singleShot(0, this, [this]() { planNext(tr("Action completed")); });
@@ -178,7 +212,13 @@ void RtcWakeDaemon::programAlarm(const QDateTime &wake, PowerAction action) {
                      result.commandLine.isEmpty() ? tr("<unknown command>") : result.commandLine,
                      result.stdErr.isEmpty() ? tr("<no stderr>") : result.stdErr));
     }
-    appendRtcwakeLog(RtcWakeController::actionLabel(PowerAction::None), wakeLabel, result);
+    appendPersistentLog(QStringLiteral("rtcwake"),
+                        {{QStringLiteral("action"), RtcWakeController::actionLabel(PowerAction::None)},
+                         {QStringLiteral("wake"), wakeLabel},
+                         {QStringLiteral("command"), result.commandLine.isEmpty() ? tr("<unknown>") : result.commandLine},
+                         {QStringLiteral("exit"), QString::number(result.exitCode)},
+                         {QStringLiteral("success"), result.success ? QStringLiteral("true") : QStringLiteral("false")},
+                         {QStringLiteral("stderr"), result.stdErr.isEmpty() ? tr("<empty>") : result.stdErr}});
 }
 
 RtcWakeDaemon::WarningOutcome RtcWakeDaemon::invokeWarning(const QDateTime &shutdown, PowerAction action) {
@@ -295,8 +335,7 @@ QString RtcWakeDaemon::resolveLogPath() const {
     return dir.filePath(QStringLiteral(".local/share/rtcwake-gui/log.txt"));
 }
 
-void RtcWakeDaemon::appendRtcwakeLog(const QString &actionLabel, const QString &wakeLabel,
-                                     const RtcWakeController::CommandResult &result) const {
+void RtcWakeDaemon::appendPersistentLog(const QString &category, const QList<QPair<QString, QString>> &fields) const {
     if (m_rtcwakeLogPath.isEmpty()) {
         return;
     }
@@ -316,14 +355,10 @@ void RtcWakeDaemon::appendRtcwakeLog(const QString &actionLabel, const QString &
 
     QTextStream stream(&file);
     const QString stamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd hh:mm:ss"));
-    const QString command = sanitizeSingleLine(result.commandLine);
-    const QString stderrText = sanitizeSingleLine(result.stdErr);
-
-    stream << "[" << stamp << "] "
-           << "action=\"" << actionLabel << "\" "
-           << "wake=\"" << wakeLabel << "\" "
-           << "command=\"" << (command.isEmpty() ? QStringLiteral("<unknown>") : command) << "\" "
-           << "exit=" << result.exitCode << " "
-           << "success=" << (result.success ? QStringLiteral("true") : QStringLiteral("false")) << " "
-           << "stderr=\"" << (stderrText.isEmpty() ? QStringLiteral("<empty>") : stderrText) << "\"\n";
+    stream << "[" << stamp << "] category=\"" << sanitizeSingleLine(category) << "\"";
+    for (const auto &pair : fields) {
+        stream << " " << pair.first << "=\""
+               << sanitizeSingleLine(pair.second) << "\"";
+    }
+    stream << "\n";
 }

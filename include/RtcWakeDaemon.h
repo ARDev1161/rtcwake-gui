@@ -6,7 +6,9 @@
 
 #include <QDateTime>
 #include <QFileSystemWatcher>
+#include <QList>
 #include <QObject>
+#include <QPair>
 #include <QProcess>
 #include <QTimer>
 
@@ -39,8 +41,7 @@ private:
     void programAlarm(const QDateTime &wake, PowerAction action);
     void log(const QString &message) const;
     QString resolveLogPath() const;
-    void appendRtcwakeLog(const QString &actionLabel, const QString &wakeLabel,
-                          const RtcWakeController::CommandResult &result) const;
+    void appendPersistentLog(const QString &category, const QList<QPair<QString, QString>> &fields) const;
 
     enum class WarningOutcome {
         Apply,

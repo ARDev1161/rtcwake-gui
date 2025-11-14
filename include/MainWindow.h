@@ -3,7 +3,9 @@
 #include "ConfigRepository.h"
 #include "PowerStateDetector.h"
 
+#include <QList>
 #include <QMainWindow>
+#include <QPair>
 #include <QVector>
 
 class AnalogClockWidget;
@@ -58,6 +60,7 @@ private:
     void applyConfigToUi();
     QString logFilePath() const;
     void refreshLogViewer();
+    void appendUserLog(const QString &category, const QList<QPair<QString, QString>> &fields);
 
     PowerAction currentAction() const;
 
