@@ -5,6 +5,8 @@ set(TEST_SUPPORT_SOURCES
     ${CMAKE_SOURCE_DIR}/src/AppConfig.cpp
     ${CMAKE_SOURCE_DIR}/src/SchedulePlanner.cpp
     ${CMAKE_SOURCE_DIR}/src/RtcWakeController.cpp
+    ${CMAKE_SOURCE_DIR}/src/SummaryWriter.cpp
+    ${CMAKE_SOURCE_DIR}/src/RtcWakeDaemon.cpp
 )
 
 set(TEST_SUPPORT_HEADERS
@@ -12,6 +14,8 @@ set(TEST_SUPPORT_HEADERS
     ${CMAKE_SOURCE_DIR}/include/AppConfig.h
     ${CMAKE_SOURCE_DIR}/include/SchedulePlanner.h
     ${CMAKE_SOURCE_DIR}/include/RtcWakeController.h
+    ${CMAKE_SOURCE_DIR}/include/SummaryWriter.h
+    ${CMAKE_SOURCE_DIR}/include/RtcWakeDaemon.h
 )
 
 function(add_rtcwake_test TARGET_NAME SOURCE_FILE)
@@ -28,3 +32,4 @@ endfunction()
 
 add_rtcwake_test(rtcwake-configrepo-test ConfigRepositoryTest.cpp)
 add_rtcwake_test(rtcwake-scheduleplanner-test SchedulePlannerTest.cpp)
+add_rtcwake_test(rtcwake-logging-test RtcWakeLoggingTest.cpp)

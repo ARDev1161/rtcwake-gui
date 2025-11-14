@@ -52,6 +52,8 @@ private:
     WarningOutcome invokeWarning(const QDateTime &shutdown, PowerAction action);
     QProcessEnvironment buildUserEnvironment() const;
 
+    friend class RtcWakeLoggingTest;
+
     ConfigRepository m_repo;
     AppConfig m_config;
     Options m_options;
