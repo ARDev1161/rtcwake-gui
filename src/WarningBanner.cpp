@@ -4,7 +4,6 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QVBoxLayout>
-#include <QSoundEffect>
 #include <QMediaPlayer>
 #include <QMediaPlaylist>
 #include <QUrl>
@@ -137,19 +136,7 @@ void WarningBanner::startSound() {
     stopSound();
     const QString source = m_soundFile.isEmpty() ? QStringLiteral(":/rtcwake/sounds/chime.wav") : m_soundFile;
     const QUrl url = soundUrlFromPath(source);
-    const QString localPath = url.isLocalFile() ? url.toLocalFile() : QString();
-    const bool useSoundEffect = (url.scheme() == QStringLiteral("qrc")
-                                 || (!localPath.isEmpty() && localPath.endsWith(QStringLiteral(".wav"), Qt::CaseInsensitive)));
     const int clamped = std::clamp(m_soundVolume, 0, 100);
-    if (useSoundEffect) {
-        auto effect = std::make_unique<QSoundEffect>(this);
-        effect->setSource(url);
-        effect->setVolume(static_cast<qreal>(clamped) / 100.0);
-        effect->setLoopCount(QSoundEffect::Infinite);
-        effect->play();
-        m_soundEffect = std::move(effect);
-        return;
-    }
 
     auto playlist = std::make_unique<QMediaPlaylist>(this);
     playlist->addMedia(url);
@@ -165,10 +152,6 @@ void WarningBanner::startSound() {
 }
 
 void WarningBanner::stopSound() {
-    if (m_soundEffect) {
-        m_soundEffect->stop();
-        m_soundEffect.reset();
-    }
     if (m_mediaPlayer) {
         m_mediaPlayer->stop();
         m_mediaPlayer.reset();

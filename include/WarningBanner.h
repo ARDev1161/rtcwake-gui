@@ -2,7 +2,6 @@
 
 #include <QDialog>
 #include <QTimer>
-#include <QSoundEffect>
 #include <QMediaPlayer>
 #include <QMediaPlaylist>
 #include <QSize>
@@ -65,7 +64,6 @@ private:
     bool m_soundEnabled {false};
     QString m_soundFile;
     int m_soundVolume {70};
-    std::unique_ptr<QSoundEffect> m_soundEffect;
     std::unique_ptr<QMediaPlayer> m_mediaPlayer;
     std::unique_ptr<QMediaPlaylist> m_mediaPlaylist;
     Theme m_theme {Theme::Crimson};
