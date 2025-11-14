@@ -44,11 +44,6 @@ public:
      */
     CommandResult programAlarm(const QDateTime &targetUtc) const;
 
-    /**
-     * @brief Run a plain systemctl power command without touching the RTC.
-     */
-    CommandResult executePowerAction(PowerAction action) const;
-
     static QString actionLabel(PowerAction action);
     static QString rtcwakeMode(PowerAction action);
 

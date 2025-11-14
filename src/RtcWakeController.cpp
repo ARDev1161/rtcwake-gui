@@ -19,30 +19,6 @@ RtcWakeController::CommandResult RtcWakeController::programAlarm(const QDateTime
     return runProcess(args);
 }
 
-RtcWakeController::CommandResult RtcWakeController::executePowerAction(PowerAction action) const {
-    QStringList args;
-
-    switch (action) {
-    case PowerAction::SuspendToIdle:
-        args = QStringList{QStringLiteral("systemctl"), QStringLiteral("suspend-then-hibernate")};
-        break;
-    case PowerAction::SuspendToRam:
-        args = QStringList{QStringLiteral("systemctl"), QStringLiteral("suspend")};
-        break;
-    case PowerAction::Hibernate:
-        args = QStringList{QStringLiteral("systemctl"), QStringLiteral("hibernate")};
-        break;
-    case PowerAction::PowerOff:
-        args = QStringList{QStringLiteral("systemctl"), QStringLiteral("poweroff")};
-        break;
-    case PowerAction::None:
-    default:
-        return {true, QString(), QString(), QString()};
-    }
-
-    return runProcess(args);
-}
-
 QString RtcWakeController::actionLabel(PowerAction action) {
     switch (action) {
     case PowerAction::SuspendToIdle:

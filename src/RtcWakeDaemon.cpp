@@ -82,7 +82,9 @@ void RtcWakeDaemon::planNext(const QString &reason) {
     m_nextWake = next.wake;
     m_nextAction = next.action;
 
-    programAlarm(next.wake, next.action);
+    if (next.action == PowerAction::None) {
+        programAlarm(next.wake, next.action);
+    }
     scheduleEventTimer(next.shutdown, next.action);
     SummaryWriter::write(m_options.targetHome, next.wake, next.action);
 
@@ -128,12 +130,17 @@ void RtcWakeDaemon::handleEventTimeout() {
         return;
     }
 
-    if (m_nextAction != PowerAction::None) {
-        auto result = m_controller.executePowerAction(m_nextAction);
+    if (m_nextAction == PowerAction::None) {
+        log(tr("No power transition requested; nothing to execute"));
+    } else if (!m_nextWake.isValid()) {
+        log(tr("Cannot arm rtcwake: next wake time is invalid"));
+    } else {
+        auto result = m_controller.scheduleWake(m_nextWake.toUTC(), m_nextAction);
         if (!result.success) {
-            log(tr("Failed to run power action: %1").arg(result.stdErr));
+            log(tr("Failed to arm rtcwake for %1: %2")
+                    .arg(RtcWakeController::actionLabel(m_nextAction), result.stdErr));
         } else {
-            log(tr("Executed %1").arg(RtcWakeController::actionLabel(m_nextAction)));
+            log(tr("Invoked rtcwake for %1").arg(RtcWakeController::actionLabel(m_nextAction)));
         }
     }
 
