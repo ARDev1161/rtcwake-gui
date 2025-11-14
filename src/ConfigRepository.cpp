@@ -27,7 +27,7 @@ QString ConfigRepository::resolvedPath() const {
     if (!m_explicitPath.isEmpty()) {
         return m_explicitPath;
     }
-    QString base = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
+    QString base = QStandardPaths::writableLocation(QStandardPaths::ConfigLocation);
     if (base.isEmpty()) {
         base = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) + QStringLiteral("/.config");
     }
