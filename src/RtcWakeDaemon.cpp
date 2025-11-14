@@ -135,12 +135,19 @@ void RtcWakeDaemon::handleEventTimeout() {
     } else if (!m_nextWake.isValid()) {
         log(tr("Cannot arm rtcwake: next wake time is invalid"));
     } else {
+        const QString actionLabel = RtcWakeController::actionLabel(m_nextAction);
+        const QString wakeLabel = formatDateTime(m_nextWake);
         auto result = m_controller.scheduleWake(m_nextWake.toUTC(), m_nextAction);
         if (!result.success) {
-            log(tr("Failed to arm rtcwake for %1: %2")
-                    .arg(RtcWakeController::actionLabel(m_nextAction), result.stdErr));
+            log(tr("Failed to arm rtcwake for %1 via %2: %3")
+                    .arg(actionLabel,
+                         result.commandLine.isEmpty() ? tr("<unknown command>") : result.commandLine,
+                         result.stdErr.isEmpty() ? tr("<no stderr>") : result.stdErr));
         } else {
-            log(tr("Invoked rtcwake for %1").arg(RtcWakeController::actionLabel(m_nextAction)));
+            log(tr("Invoked rtcwake for %1 at %2 via: %3")
+                    .arg(actionLabel,
+                         wakeLabel,
+                         result.commandLine.isEmpty() ? tr("<unknown command>") : result.commandLine));
         }
     }
 
@@ -149,9 +156,17 @@ void RtcWakeDaemon::handleEventTimeout() {
 
 void RtcWakeDaemon::programAlarm(const QDateTime &wake, PowerAction action) {
     Q_UNUSED(action);
+    const QString wakeLabel = wake.isValid() ? formatDateTime(wake) : tr("<invalid wake time>");
     auto result = m_controller.programAlarm(wake.toUTC());
-    if (!result.success) {
-        log(tr("Failed to program rtcwake: %1").arg(result.stdErr));
+    if (result.success) {
+        log(tr("Programmed rtcwake for %1 via: %2")
+                .arg(wakeLabel,
+                     result.commandLine.isEmpty() ? tr("<unknown command>") : result.commandLine));
+    } else {
+        log(tr("Failed to program rtcwake for %1 via %2: %3")
+                .arg(wakeLabel,
+                     result.commandLine.isEmpty() ? tr("<unknown command>") : result.commandLine,
+                     result.stdErr.isEmpty() ? tr("<no stderr>") : result.stdErr));
     }
 }
 
