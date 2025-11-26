@@ -85,5 +85,6 @@ The daemon watches `~/.config/rtcwake-gui/config.json`, re-arms the upcoming wak
 - The weekly view schedules only the closest next occurrence. Re-open the app (or rely on automation) to re-arm future alarms.
 - Plasma integration is optional; non-Plasma users can ignore `BUILD_PLASMA_WIDGET`.
 - All scheduling preferences are stored in `~/.config/rtcwake-gui/config.json`. Remove or edit that file if you need to reset the UI.
+- To confirm the RTC wake time currently armed on the system, run `date -d @$(cat /sys/class/rtc/rtc0/wakealarm)`. An empty value usually means no alarm is set.
 
 Enjoy and wake on time!
